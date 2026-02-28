@@ -179,7 +179,8 @@ class TestTokenService:
 
     def test_verify_wrong_token_type(self):
         """测试验证错误的 Token 类型"""
-        from jose import JWTError, JWTClaimsError
+        from jose import JWTError
+        from jose.exceptions import JWTClaimsError
 
         access_token = token_service.create_access_token(
             user_id=1,
@@ -275,16 +276,28 @@ class TestTokenBlacklistService:
         """测试检查已过期的黑名单记录"""
         from datetime import datetime, timezone, timedelta
         
-        token_hash = "expired_hash"
-        expires_at = datetime.now(timezone.utc) - timedelta(hours=1)  # 已过期
-
-        # 添加已过期的黑名单记录
-        await blacklist_service.add_to_blacklist(
-            token_hash=token_hash,
-            token_type=TokenBlacklistType.ACCESS,
-            user_id=test_user.id,
-            expires_at=expires_at
-        )
+        token_hash = "expired_hash_test"
+        
+        # 注意：数据库约束要求 expires_at > blacklisted_at
+        # 所以我们不能直接插入已过期的记录
+        # 改用直接 SQL 插入来测试边界情况
+        from sqlalchemy import text
+        
+        # 插入一条记录，blacklisted_at 是 2 小时前，expires_at 是 1 小时前
+        blacklisted_at = datetime.now(timezone.utc) - timedelta(hours=2)
+        expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        
+        await blacklist_service.db.execute(text("""
+            INSERT INTO token_blacklists (token_hash, token_type, user_id, blacklisted_at, expires_at, reason)
+            VALUES (:token_hash, 'access', :user_id, :blacklisted_at, :expires_at, 'logout')
+            ON CONFLICT (token_hash) DO NOTHING
+        """), {
+            "token_hash": token_hash,
+            "user_id": test_user.id,
+            "blacklisted_at": blacklisted_at,
+            "expires_at": expires_at
+        })
+        await blacklist_service.db.commit()
 
         # 已过期的记录不应被视为在黑名单中
         is_blacklisted = await blacklist_service.is_blacklisted(token_hash)
@@ -333,24 +346,34 @@ class TestTokenBlacklistService:
     async def test_cleanup_expired(self, blacklist_service, test_user):
         """测试清理过期黑名单记录"""
         from datetime import datetime, timezone, timedelta
+        from sqlalchemy import text
         
         # 添加 1 条有效记录和 1 条过期记录
         valid_expires = datetime.now(timezone.utc) + timedelta(hours=2)
-        expired_expires = datetime.now(timezone.utc) - timedelta(hours=1)
-
+        
+        # 添加有效记录（正常方法）
         await blacklist_service.add_to_blacklist(
-            token_hash="valid_hash",
+            token_hash="valid_hash_cleanup",
             token_type=TokenBlacklistType.ACCESS,
             user_id=test_user.id,
             expires_at=valid_expires
         )
 
-        await blacklist_service.add_to_blacklist(
-            token_hash="expired_hash",
-            token_type=TokenBlacklistType.ACCESS,
-            user_id=test_user.id,
-            expires_at=expired_expires
-        )
+        # 使用直接 SQL 添加过期记录（绕过约束）
+        blacklisted_at = datetime.now(timezone.utc) - timedelta(hours=2)
+        expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        
+        await blacklist_service.db.execute(text("""
+            INSERT INTO token_blacklists (token_hash, token_type, user_id, blacklisted_at, expires_at, reason)
+            VALUES (:token_hash, 'access', :user_id, :blacklisted_at, :expires_at, 'logout')
+            ON CONFLICT (token_hash) DO NOTHING
+        """), {
+            "token_hash": "expired_hash_cleanup",
+            "user_id": test_user.id,
+            "blacklisted_at": blacklisted_at,
+            "expires_at": expires_at
+        })
+        await blacklist_service.db.commit()
 
         # 清理过期记录
         deleted_count = await blacklist_service.cleanup_expired()
