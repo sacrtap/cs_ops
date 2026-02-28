@@ -1,0 +1,141 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cs-ops-backend"
+version = "0.1.0"
+description = "内部运营中台客户信息管理与运营系统 - 后端"
+requires-python = ">=3.11"
+dependencies = [
+    "sanic>=23.0.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "asyncpg>=0.29.0",
+    "pydantic>=2.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    "reportlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "pytest-sanic>=1.9.0",
+    "httpx>=0.25.0",
+    "factory-boy>=3.3.0",
+    "faker>=21.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+]
+
+[tool.pytest.ini_options]
+# 测试路径配置
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# 异步测试配置
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+# 测试标记
+markers = [
+    "unit: 单元测试",
+    "integration: 集成测试",
+    "api: API 测试",
+    "e2e: 端到端测试",
+    "slow: 慢速测试",
+    "customer: 客户管理相关测试",
+    "billing: 结算管理相关测试",
+    "health: 健康度监控相关测试",
+    "value: 价值评估相关测试",
+]
+
+# 过滤器
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# 超时配置（秒）
+timeout = 60
+
+# 详细输出
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--cov=backend",
+    "--cov-report=term-missing",
+    "--cov-report=html:test-results/coverage-html",
+    "--cov-report=xml:test-results/coverage.xml",
+    "--cov-fail-under=95",
+]
+
+[tool.coverage.run]
+source = ["backend"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101"]  # allow assert in tests
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sanic.*",
+    "asyncpg.*",
+    "celery.*",
+]
+ignore_missing_imports = true
