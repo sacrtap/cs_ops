@@ -1,5 +1,11 @@
 """
 JWT 认证中间件 - 验证请求 Token 并注入用户信息
+
+功能：
+- Token 签名验证
+- Token 过期检查
+- Token 黑名单检查
+- 用户信息注入
 """
 from functools import wraps
 from typing import Optional
@@ -10,7 +16,9 @@ from jose.exceptions import ExpiredSignatureError, JWTClaimsError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.services.token_service import token_service
+from app.services.token_blacklist_service import TokenBlacklistService
 from app.models.user import User, UserRole, UserStatus
+import hashlib
 
 
 class AuthMiddleware:
@@ -47,14 +55,22 @@ class AuthMiddleware:
             role = UserRole(payload["role"])
 
         except JWTError as e:
-            raise Unauthorized(f"Token 无效：{str(e)}")
+            raise Unauthorized("认证令牌无效或已过期")
         except JWTClaimsError as e:
-            raise Unauthorized(f"Token claims 错误：{str(e)}")
+            raise Unauthorized("认证令牌无效或已过期")
         except (KeyError, ValueError):
-            raise Unauthorized("Token 格式错误")
+            raise Unauthorized("认证令牌无效或已过期")
+
+        # 检查 Token 是否在黑名单中
+        db: AsyncSession = request.ctx.db
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        blacklist_service = TokenBlacklistService(db)
+        is_blacklisted = await blacklist_service.is_blacklisted(token_hash)
+        
+        if is_blacklisted:
+            raise Unauthorized("认证令牌已失效")
 
         # 查询用户
-        db: AsyncSession = request.ctx.db
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
 

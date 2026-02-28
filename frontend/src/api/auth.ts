@@ -33,13 +33,14 @@ export async function refreshToken(data: RefreshTokenRequest) {
 
 /**
  * 退出登录
- * 注意：这是客户端操作，只需要清除本地存储
- * 如果需要服务端失效 Token，可以添加黑名单机制
+ * 调用服务端 API 使 Token 失效
  */
-export function logout() {
-  // 清除本地 Token
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
+export async function logout(data?: { refresh_token: string }) {
+  if (data) {
+    // 调用服务端登出 API
+    await api.post(`${API_PREFIX}/logout`, data)
+  }
+  // 清除本地存储（在 store 中处理）
 }
 
 /**

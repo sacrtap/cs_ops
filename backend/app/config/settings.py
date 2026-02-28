@@ -38,6 +38,10 @@ class Settings:
     BCRYPT_ROUNDS: int = 10
     MAX_LOGIN_ATTEMPTS: int = 5  # 最大登录失败次数
     LOCKOUT_DURATION_MINUTES: int = 15  # 锁定时长（分钟）
+    
+    # Token 配置
+    TOKEN_REFRESH_RATE_LIMIT: int = int(os.getenv("TOKEN_REFRESH_RATE_LIMIT", "3"))  # 1 分钟内最多刷新次数
+    TOKEN_REFRESH_RATE_WINDOW: int = int(os.getenv("TOKEN_REFRESH_RATE_WINDOW", "60"))  # 速率限制时间窗口（秒）
 
     # CORS 配置
     CORS_ORIGINS: list[str] = [

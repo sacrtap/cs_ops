@@ -1,0 +1,127 @@
+# generated: 2026-02-27T00:00:00.000Z
+# project: cs_ops
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts/stories
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-02-27T00:00:00.000Z
+project: cs_ops
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts/stories
+
+development_status:
+  # Epic 1: 权限与认证 (基础设施 - 优先实施)
+  epic-1: in-progress
+  1-1-user-authentication: done # APPROVE (93% score - All CRITICAL + HIGH fixed)
+  1-2-jwt-token-management: done ✅ # 🎉 Story completed 2026-02-28 | All tasks done (95%)
+  1-3-permission-management: backlog
+  1-4-data-permission: backlog
+  1-5-function-permission: backlog
+  1-6-role-management: backlog
+  1-7-permission-inheritance: backlog
+  1-8-permission-audit: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: 客户主数据管理
+  epic-2: backlog
+  2-1-customer-list: backlog
+  2-2-customer-detail-360: backlog
+  2-3-customer-create: backlog
+  2-4-batch-import: backlog
+  2-5-batch-export: backlog
+  2-6-customer-search: backlog
+  2-7-customer-status-management: backlog
+  2-8-data-integrity-validation: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: 客户健康度监控
+  epic-3: backlog
+  3-1-health-dashboard: backlog
+  3-2-zombie-account-detection: backlog
+  3-3-risk-customer-alert: backlog
+  3-4-alert-notification-system: backlog
+  3-5-auto-health-status-update: backlog
+  3-6-risk-score-calculation: backlog
+  3-7-alert-history: backlog
+  3-8-health-trend-analysis: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: 客户价值评估
+  epic-4: backlog
+  4-1-value-level-display: backlog
+  4-2-level-rule-configuration: backlog
+  4-3-manual-level-maintenance: backlog
+  4-4-level-history: backlog
+  4-5-level-recalculation: backlog
+  4-6-rule-immediate-effect: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: 结算管理
+  epic-5: backlog
+  5-1-settlement-auto-generate: backlog
+  5-2-auto-link-usage-price: backlog
+  5-3-auto-calculate-amount: backlog
+  5-4-abnormal-data-detection: backlog
+  5-5-abnormal-data-confirmation: backlog
+  5-6-settlement-export: backlog
+  5-7-batch-send-settlement: backlog
+  5-8-send-log: backlog
+  5-9-settlement-history-query: backlog
+  5-10-settlement-approval: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: 操作日志
+  epic-6: backlog
+  6-1-critical-operation-record: backlog
+  6-2-operator-record: backlog
+  6-3-operation-time-record: backlog
+  6-4-operation-ip-record: backlog
+  6-5-operation-detail-record: backlog
+  6-6-log-query: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: 客户转移
+  epic-7: backlog
+  7-1-customer-transfer-operation: backlog
+  7-2-transfer-reason-record: backlog
+  7-3-transfer-history: backlog
+  7-4-transfer-number-generation: backlog
+  7-5-auto-notification: backlog
+  7-6-transfer-statistics: backlog
+  7-7-batch-transfer: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: 数据分析与报告
+  epic-8: backlog
+  8-1-weekly-report-generation: backlog
+  8-2-report-export: backlog
+  8-3-basic-filtering: backlog
+  8-4-data-visualization: backlog
+  8-5-custom-date-range-query: backlog
+  epic-8-retrospective: optional

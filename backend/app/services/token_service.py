@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, Literal
 from jose import jwt, JWTError
 from jose.exceptions import ExpiredSignatureError, JWTClaimsError
+import uuid
 from app.config.settings import settings
 from app.models.user import UserRole
 
@@ -47,6 +48,7 @@ class TokenService:
             "exp": expire,
             "iat": now,
             "type": "access",
+            "jti": str(uuid.uuid4()),  # JWT ID - 防重放攻击
         }
 
         if additional_claims:
@@ -80,6 +82,7 @@ class TokenService:
             "exp": expire,
             "iat": now,
             "type": "refresh",
+            "jti": str(uuid.uuid4()),  # JWT ID - 防重放攻击
         }
 
         if additional_claims:

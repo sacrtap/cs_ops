@@ -53,6 +53,18 @@ class TokenInvalidError(AuthenticationError):
         super().__init__("TOKEN_INVALID", "Token 无效", 401)
 
 
+class TokenUsedError(AuthenticationError):
+    """Token 已被使用错误（防重放）"""
+    def __init__(self):
+        super().__init__("REFRESH_TOKEN_USED", "刷新令牌已被使用", 401)
+
+
+class TokenRateLimitError(AuthenticationError):
+    """Token 刷新速率限制错误"""
+    def __init__(self):
+        super().__init__("TOKEN_REFRESH_LIMIT_EXCEEDED", "Token 刷新过于频繁，请稍后再试", 429)
+
+
 class AuthService:
     """认证服务"""
 
@@ -122,7 +134,7 @@ class AuthService:
         client_ip: Optional[str] = None
     ) -> Tuple[str, str]:
         """
-        刷新 Token
+        刷新 Token（Refresh Token 单次使用 + 速率限制）
         
         Args:
             refresh_token: 刷新 Token
@@ -134,13 +146,22 @@ class AuthService:
         Raises:
             TokenInvalidError: Token 无效
             TokenExpiredError: Token 过期
+            TokenUsedError: Token 已被使用（防重放）
+            TokenRateLimitError: 刷新速率超限
             UserInactiveError: 用户未激活
         """
+        import hashlib
+        import time
+        from datetime import datetime, timezone
+        from jose import JWTError
+        from jose.exceptions import JWTClaimsError
+        
         try:
             # 验证 Refresh Token
             payload = token_service.verify_token(refresh_token, token_type="refresh")
             user_id = int(payload["sub"])
             username = payload["username"]
+            token_jti = payload.get("jti")
 
         except JWTError:
             raise TokenInvalidError()
@@ -158,6 +179,25 @@ class AuthService:
         if user.status != UserStatus.ACTIVE:
             raise UserInactiveError()
 
+        # 速率限制检查（同一用户 1 分钟内最多 3 次）
+        await self._check_token_refresh_rate_limit(user_id)
+
+        # 计算 Token 哈希（用于检查是否已使用）
+        token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+
+        # 检查 Token 是否已在黑名单中（已被使用）
+        from app.models.token_blacklist import TokenBlacklist, TokenBlacklistType
+        from sqlalchemy import select
+        result = await self.db.execute(
+            select(TokenBlacklist).where(
+                TokenBlacklist.token_hash == token_hash,
+                TokenBlacklist.token_type == TokenBlacklistType.REFRESH,
+                TokenBlacklist.expires_at > datetime.now(timezone.utc)
+            )
+        )
+        if result.scalar_one_or_none() is not None:
+            raise TokenUsedError()
+
         # 生成新 Token
         new_access_token = token_service.create_access_token(
             user_id=user.id,
@@ -169,7 +209,116 @@ class AuthService:
             username=user.username
         )
 
+        # 将旧 Refresh Token 加入黑名单（单次使用）
+        from app.models.token_blacklist import BlacklistReason
+        from app.services.token_blacklist_service import TokenBlacklistService
+        
+        # 解码旧 Token 获取过期时间
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        
+        blacklist_service = TokenBlacklistService(self.db)
+        await blacklist_service.add_token_to_blacklist(
+            token=refresh_token,
+            token_type=TokenBlacklistType.REFRESH,
+            user_id=user_id,
+            expires_at=expires_at,
+            reason=BlacklistReason.LOGOUT  # 使用 logout 作为默认原因
+        )
+
         return new_access_token, new_refresh_token
+
+    async def _check_token_refresh_rate_limit(self, user_id: int) -> None:
+        """
+        检查 Token 刷新速率限制
+        
+        Args:
+            user_id: 用户 ID
+            
+        Raises:
+            TokenRateLimitError: 超出速率限制
+        """
+        import time
+        from app.models.token_blacklist import TokenBlacklist, TokenBlacklistType
+        from sqlalchemy import select, func
+        from datetime import datetime, timezone, timedelta
+        
+        # 计算时间窗口（1 分钟前）
+        window_start = datetime.now(timezone.utc) - timedelta(seconds=settings.TOKEN_REFRESH_RATE_WINDOW)
+        
+        # 查询用户在时间窗口内的刷新次数
+        result = await self.db.execute(
+            select(func.count(TokenBlacklist.id)).where(
+                TokenBlacklist.user_id == user_id,
+                TokenBlacklist.token_type == TokenBlacklistType.REFRESH,
+                TokenBlacklist.blacklisted_at >= window_start
+            )
+        )
+        count = result.scalar()
+        
+        # 检查是否超出限制
+        if count >= settings.TOKEN_REFRESH_RATE_LIMIT:
+            raise TokenRateLimitError()
+
+    async def logout(
+        self,
+        refresh_token: str,
+        client_ip: Optional[str] = None
+    ) -> bool:
+        """
+        用户登出（将 Token 加入黑名单）
+        
+        Args:
+            refresh_token: 刷新 Token
+            client_ip: 客户端 IP
+            
+        Returns:
+            bool: 登出成功返回 True
+            
+        Raises:
+            TokenInvalidError: Token 无效
+        """
+        import hashlib
+        from datetime import datetime, timezone
+        from jose import JWTError
+        from jose.exceptions import JWTClaimsError
+        
+        try:
+            # 验证 Refresh Token
+            payload = token_service.verify_token(refresh_token, token_type="refresh")
+            user_id = int(payload["sub"])
+            username = payload["username"]
+
+        except JWTError:
+            # 即使 Token 无效也返回成功（防止信息泄露）
+            return True
+        except JWTClaimsError:
+            return True
+        except (KeyError, ValueError):
+            return True
+
+        # 查询用户
+        user = await self._get_user_by_id(user_id)
+        
+        # 将 Refresh Token 加入黑名单
+        from app.models.token_blacklist import TokenBlacklist, TokenBlacklistType, BlacklistReason
+        from app.services.token_blacklist_service import TokenBlacklistService
+        
+        # 解码 Token 获取过期时间
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        
+        blacklist_service = TokenBlacklistService(self.db)
+        await blacklist_service.add_token_to_blacklist(
+            token=refresh_token,
+            token_type=TokenBlacklistType.REFRESH,
+            user_id=user_id,
+            expires_at=expires_at,
+            reason=BlacklistReason.LOGOUT
+        )
+
+        # TODO: 添加审计日志记录
+        # await log_audit_event(user_id=user_id, action='logout', details={'ip': client_ip})
+
+        return True
 
     async def _get_user_by_username(self, username: str) -> Optional[User]:
         """根据用户名查询用户"""
