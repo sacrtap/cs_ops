@@ -2,14 +2,17 @@
 Permission Audit Service - 权限审计服务
 
 提供权限审计相关的业务逻辑：
-- 查询权限使用日志
-- 检测异常访问
-- 统计异常访问数据
-- 导出权限审计记录
+- query_audit_logs: 查询权限审计记录
+- get_audit_statistics: 获取权限审计统计信息
+- detect_anomaly: 检测异常访问
+- create_audit_log: 创建权限审计日志
+- export_audit_logs: 导出权限审计记录
 """
-from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
+from typing import Optional, Dict, List, Tuple
+from sqlalchemy import select, and_, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 from sqlalchemy import select, func, and_, or_
 from ..models.permission_audit_log import PermissionAuditLog
 
@@ -239,6 +242,9 @@ class PermissionAuditService:
             session, user_id, resource, action, ip_address, role
         )
         
+        # 将 details 字典转换为 JSON 字符串
+        details_json = json.dumps(details, ensure_ascii=False) if details else None
+        
         # 创建审计日志
         audit_log = PermissionAuditLog(
             user_id=user_id,
@@ -248,7 +254,7 @@ class PermissionAuditService:
             ip_address=ip_address,
             is_anomaly=is_anomaly,
             anomaly_type=anomaly_type,
-            details=details
+            details=details_json
         )
         
         session.add(audit_log)

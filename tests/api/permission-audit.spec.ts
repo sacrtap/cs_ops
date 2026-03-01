@@ -17,7 +17,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
   // 测试用 JWT Token（管理员）- 使用后端 SECRET_KEY 生成
-  const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJhZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxODAzOTE2NDMzfQ.Tk1lGWuxLcHVqgfqqpX9u1SREvSw02MZ6muuhRZCOdk";
+  const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJhZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxODAzOTE2NzMzfQ.WPbTCPTUTYc1hSoaXXcHE054IuH9sF9py3OzkAwgO9Y";
   
   // 认证请求头
   const authHeaders = {
