@@ -17,7 +17,7 @@ permission_inheritance_bp = Blueprint('permission_inheritance', url_prefix='/api
 
 
 @permission_inheritance_bp.route('/roles/hierarchy', methods=['GET'])
-@protected(permission_inheritance_bp)
+
 @PermissionMiddleware.require_permission("role", "read")
 async def get_role_hierarchy(request):
     """
@@ -42,7 +42,7 @@ async def get_role_hierarchy(request):
 
 
 @permission_inheritance_bp.route('/roles/<role_name:string>/permissions', methods=['GET'])
-@protected(permission_inheritance_bp)
+
 @PermissionMiddleware.require_permission("role", "read")
 async def get_role_permissions(request, role_name):
     """
@@ -79,7 +79,7 @@ async def get_role_permissions(request, role_name):
 
 
 @permission_inheritance_bp.route('/permissions/check', methods=['POST'])
-@protected(permission_inheritance_bp)
+
 async def check_permission(request):
     """
     检查角色是否有权限执行特定操作
@@ -124,7 +124,7 @@ async def check_permission(request):
 
 
 @permission_inheritance_bp.route('/permissions/cache/clear', methods=['POST'])
-@protected(permission_inheritance_bp)
+
 @PermissionMiddleware.require_permission("role", "delete")
 async def clear_permission_cache(request):
     """
@@ -150,7 +150,7 @@ async def clear_permission_cache(request):
 # ==================== 额外授权管理 API ====================
 
 @permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['POST'])
-@protected(permission_inheritance_bp)
+
 async def grant_additional_permission(request, role_name):
     """
     为角色添加额外授权
@@ -190,7 +190,7 @@ async def grant_additional_permission(request, role_name):
 
 
 @permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['DELETE'])
-@protected(permission_inheritance_bp)
+
 async def revoke_additional_permission(request, role_name):
     """
     撤销角色的额外授权
@@ -229,7 +229,7 @@ async def revoke_additional_permission(request, role_name):
 
 
 @permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['GET'])
-@protected(permission_inheritance_bp)
+
 async def get_additional_permissions(request, role_name):
     """
     获取角色的所有额外授权
