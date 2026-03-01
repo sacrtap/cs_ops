@@ -7,6 +7,7 @@ from sanic.exceptions import NotFound, ServerError
 from app.config.settings import settings
 from app.database import init_db, close_db
 from app.routes.auth_routes import auth_bp
+from app.routes.customer_routes import customer_bp
 
 # 配置日志
 logging.basicConfig(
@@ -32,6 +33,7 @@ def create_app() -> Sanic:
 
     # 注册 Blueprint
     app.blueprint(auth_bp)
+    app.blueprint(customer_bp)
 
     # 注册事件处理器
     register_events(app)

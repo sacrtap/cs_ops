@@ -11,9 +11,17 @@ pytest 测试 Fixtures - 内部运营中台客户信息管理与运营系统
 import asyncio
 import pytest
 import pytest_asyncio
+import sys
+import os
 from typing import AsyncGenerator, Generator
 from datetime import datetime
 from faker import Faker
+
+# 添加 backend 目录到 Python 路径
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
 # 导入应用模型和服务
 # from backend.models.customer import Customer
