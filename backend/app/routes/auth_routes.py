@@ -27,35 +27,28 @@ async def login(request: Request):
     """
     import logging
     logger = logging.getLogger(__name__)
-    print("=== LOGIN API CALLED ===")  # 直接打印到 stdout
     
     try:
         # 验证请求数据
-        print(f"Request JSON: {request.json}")
         data = LoginRequest(**request.json)
-        print(f"LoginRequest validated: {data.username}")
+        logger.info(f"Login attempt: {data.username}")
 
         # 获取数据库会话
-        print(f"Getting db session from request.ctx.db: {hasattr(request.ctx, 'db')}")
         db: AsyncSession = request.ctx.db
-        print(f"DB session type: {type(db)}")
 
         # 创建认证服务
         auth_service = AuthService(db)
-        print(f"AuthService created")
 
         # 获取客户端 IP
         client_ip = request.remote_addr
-        print(f"Client IP: {client_ip}")
 
         # 认证并生成 Token
-        print("Calling authenticate...")
         user, access_token, refresh_token = await auth_service.authenticate(
             username=data.username,
             password=data.password,
             client_ip=client_ip
         )
-        print(f"Authentication successful: {user.username}")
+        logger.info(f"Login successful: {user.username}")
 
         # 返回响应（使用 mode='json' 来序列化 datetime）
         response_data = LoginResponse(
