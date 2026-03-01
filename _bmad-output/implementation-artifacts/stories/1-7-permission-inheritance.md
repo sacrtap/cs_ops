@@ -1,6 +1,8 @@
 # Story 1.7: 权限继承
 
-Status: review
+Status: in-progress
+
+<!-- Code review issues fixed and committed to git. Pending test validation. -->
 
 ## Story
 
@@ -31,17 +33,17 @@ so that 简化权限配置.
   - [x] 修改权限服务，添加继承检查逻辑
   - [x] 更新权限缓存机制
   - [x] 实现继承关系的数据库查询
-  - [x] 测试权限继承功能（ATDD 测试已生成）
+  - [ ] 测试权限继承功能（ATDD 测试已生成，待运行验证）
 
 - [x] Task 4: 实现权限矩阵管理
   - [x] 更新角色管理页面，显示角色层级关系
   - [x] 实现继承权限的可视化展示
-  - [x] 测试权限继承的管理功能
+  - [ ] 测试权限继承的管理功能（需要前端配合，待完成）
 
 - [x] Task 5: 优化权限检查性能
   - [x] 优化权限继承的计算逻辑
   - [x] 改进权限缓存策略
-  - [x] 性能测试：检查继承权限查询的响应时间
+  - [ ] 性能测试：检查继承权限查询的响应时间（待实现）
 
 - [ ] Task 6: 更新文档和测试
   - [ ] 更新 API 文档，说明权限继承机制
@@ -143,25 +145,78 @@ ark-code-latest
 
 ### File List
 
-#### 新建文件（后端 3 个 + 前端 2 个 = 5 个）：
+#### 新建文件（后端 7 个 + 前端 6 个 + 测试 4 个 = 17 个）：
+
+**后端服务层**:
 
 - `backend/app/services/permission_inheritance_service.py` - 权限继承服务（~350 行）
-- `backend/app/routes/permission_inheritance_routes.py` - 权限继承路由（~120 行）
-- `backend/app/database/migrations/add_role_hierarchy_fields.py` - 数据库迁移脚本（~150 行）
-- `frontend/src/types/permission.ts` - 类型定义扩展（新增~150 行）
-- `frontend/src/api/permission.ts` - API 客户端扩展（新增~40 行）
-- `frontend/src/components/business/permission/PermissionHierarchy.vue` - 角色层级可视化组件（~450 行）
+- `backend/app/services/role_management_service.py` - 角色管理服务（~200 行）
 
-#### 修改文件（后端 3 个）：
+**后端路由层**:
+
+- `backend/app/routes/permission_inheritance_routes.py` - 权限继承路由（~120 行）
+- `backend/app/routes/role_management_routes.py` - 角色管理路由（~150 行）
+
+**后端 Schema 层**:
+
+- `backend/app/schemas/role_management.py` - 角色管理 Schema（~100 行）
+
+**后端数据库迁移**:
+
+- `backend/app/database/migrations/add_role_hierarchy_fields.py` - 数据库迁移脚本（~150 行）
+
+**前端类型定义**:
+
+- `frontend/src/types/permission.ts` - 类型定义扩展（新增~150 行）
+- `frontend/src/types/role-management.ts` - 角色管理类型（~100 行）
+
+**前端 API 客户端**:
+
+- `frontend/src/api/permission.ts` - API 客户端扩展（新增~40 行）
+- `frontend/src/api/role-management.ts` - 角色管理 API（~80 行）
+
+**前端组件**:
+
+- `frontend/src/components/business/permission/PermissionHierarchy.vue` - 角色层级可视化组件（~450 行）
+- `frontend/src/components/business/role/` - 角色管理组件目录
+
+**前端 Store**:
+
+- `frontend/src/stores/role-management.ts` - 角色管理 Store（~200 行）
+
+**前端视图**:
+
+- `frontend/src/views/admin/role/` - 角色管理视图目录
+
+**测试文件**:
+
+- `backend/tests/test_role_management_routes.py` - 角色管理路由测试
+- `backend/tests/test_role_management_service.py` - 角色管理服务测试
+- `tests/api/permission-inheritance.spec.ts` - API 测试（12 个测试，ATDD 红 phase）
+- `tests/e2e/permission-inheritance.spec.ts` - E2E 测试（10 个测试，ATDD 红 phase）
+- `tests/api/role-management.spec.ts` - 角色管理 API 测试
+- `tests/e2e/role-management.spec.ts` - 角色管理 E2E 测试
+- `tests/fixtures/` - 测试夹具目录
+
+#### 修改文件（后端 3 个 + 前端 3 个 = 6 个）：
+
+**后端**:
 
 - `backend/app/models/roles.py` - 添加 level 和 parent_role_id 字段
 - `backend/app/services/permission_service.py` - 集成权限继承功能
 - `backend/app/main.py` - 注册权限继承路由蓝图
 
-#### 已生成测试文件（2 个）：
+**前端**:
 
-- `tests/api/permission-inheritance.spec.ts` - API 测试（12 个测试，ATDD 红 phase）
-- `tests/e2e/permission-inheritance.spec.ts` - E2E 测试（10 个测试，ATDD 红 phase）
+- `frontend/src/router/index.ts` - 注册角色管理路由
+
+#### 已生成文档（5 个）：
+
+- `_bmad-output/implementation-artifacts/stories/1-7-permission-inheritance.md` - 本故事文件
+- `_bmad-output/implementation-artifacts/story-1-7-complete-report.md` - 完成报告
+- `_bmad-output/implementation-artifacts/story-1-7-progress-report.md` - 进度报告
+- `_bmad-output/test-artifacts/atdd-checklist-1-7.md` - ATDD 清单
+- `_bmad-output/tea/` - TEA 测试产物
 
 #### 待创建文件：
 
@@ -173,9 +228,9 @@ ark-code-latest
 
 ## Change Log
 
-### 2026-03-01 - Backend Implementation Complete (Phase 1)
+### 2026-03-01 - Full Stack Implementation Complete
 
-**进度**: Tasks 1-4 完成，Tasks 5-6 待完成
+**进度**: Tasks 1-5 完成（除测试外），Task 6 进行中
 
 **实现内容**:
 
@@ -196,13 +251,19 @@ ark-code-latest
 - 修改权限服务，添加继承检查逻辑
 - 更新权限缓存机制
 - 实现继承关系的数据库查询
-- ⏳ 测试权限继承功能（待完成）
+- ⏳ 测试权限继承功能（ATDD 测试已生成，待运行验证）
 
-✅ **Task 4: 实现权限矩阵管理（后端 API）**
+✅ **Task 4: 实现权限矩阵管理**
 
 - 后端 API 接口已完成
-- ⏳ 前端可视化（待实现）
+- 前端可视化已完成（PermissionHierarchy.vue）
 - ⏳ 测试（待完成）
+
+✅ **Task 5: 优化权限检查性能**
+
+- 优化权限继承的计算逻辑
+- 改进权限缓存策略
+- ⏳ 性能测试：检查继承权限查询的响应时间（待实现）
 
 **关键变更**:
 
@@ -238,20 +299,25 @@ ark-code-latest
    - 导入权限继承路由蓝图
    - 注册蓝图到应用
 
+6. **前端实现**:
+   - `frontend/src/types/permission.ts` - 类型定义扩展（~150 行）
+   - `frontend/src/api/permission.ts` - API 客户端扩展（4 个函数）
+   - `frontend/src/components/business/permission/PermissionHierarchy.vue` - 角色层级可视化组件（~450 行）
+
 **待完成**:
 
-- ⏳ Task 3.4: 测试权限继承功能
+- ⏳ Task 3.4: 测试权限继承功能（ATDD 测试已生成，待运行）
 - ⏳ Task 4.3: 测试权限继承的管理功能（需要前端配合）
-- ⏳ Task 5: 优化权限检查性能
+- ⏳ Task 5.3: 性能测试
 - ⏳ Task 6: 更新文档和测试
-- ⏳ 前端实现：
-  - `frontend/src/api/permission.ts` - API 调用
-  - `PermissionHierarchy.vue` - 角色层级可视化组件
-  - 更新 `role-management.vue`
+  - ⏳ 单元测试
+  - ⏳ 集成测试
+  - ⏳ API 文档
 
 **下一步**:
 
-1. 运行数据库迁移
-2. 实现前端组件
-3. 编写单元测试和集成测试
-4. 性能优化
+1. ✅ 所有文件已添加到 git 暂存区
+2. ⏳ 运行数据库迁移
+3. ⏳ 运行 ATDD 测试验证
+4. ⏳ 编写单元测试和集成测试
+5. ⏳ 性能基准测试

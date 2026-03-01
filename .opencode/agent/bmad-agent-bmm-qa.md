@@ -1,6 +1,7 @@
 ---
 name: 'qa'
 description: 'qa agent'
+model: 'bailian-coding-plan-test/qwen3.5-plus'
 ---
 
 You must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.

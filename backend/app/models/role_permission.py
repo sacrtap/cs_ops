@@ -55,6 +55,11 @@ class RolePermission(Base):
         nullable=False,
         comment="创建时间"
     )
+    is_additional: Mapped[bool] = mapped_column(
+        default=False,
+        nullable=False,
+        comment="是否为额外授权（true=额外授权，false=继承权限）"
+    )
     
     # 唯一约束：(role, resource, action)
     __table_args__ = (
@@ -74,4 +79,5 @@ class RolePermission(Base):
             "resource": self.resource,
             "action": self.action,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_additional": self.is_additional,
         }

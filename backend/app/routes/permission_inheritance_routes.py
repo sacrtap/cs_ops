@@ -145,3 +145,111 @@ async def clear_permission_cache(request):
             "success": False,
             "error": str(e)
         }, status=500)
+
+
+# ==================== 额外授权管理 API ====================
+
+@permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['POST'])
+@protected()
+async def grant_additional_permission(request, role_name):
+    """
+    为角色添加额外授权
+    
+    Request Body:
+        resource: 资源名称
+        action: 操作类型
+    
+    Returns:
+        JSON: 授权结果
+    """
+    try:
+        data = request.json
+        resource = data.get('resource')
+        action = data.get('action')
+        
+        if not resource or not action:
+            return json({
+                "success": False,
+                "message": "Missing required fields: resource, action"
+            }, status=400)
+        
+        async with request.app.ctx.db_session() as session:
+            result = await PermissionInheritanceService.grant_additional_permission(
+                role_name, resource, action, session
+            )
+            await session.commit()
+        
+        status_code = 200 if result["success"] else 400
+        return json(result, status=status_code)
+        
+    except Exception as e:
+        return json({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['DELETE'])
+@protected()
+async def revoke_additional_permission(request, role_name):
+    """
+    撤销角色的额外授权
+    
+    Query Parameters:
+        resource: 资源名称
+        action: 操作类型
+    
+    Returns:
+        JSON: 撤销结果
+    """
+    try:
+        resource = request.args.get('resource')
+        action = request.args.get('action')
+        
+        if not resource or not action:
+            return json({
+                "success": False,
+                "message": "Missing required parameters: resource, action"
+            }, status=400)
+        
+        async with request.app.ctx.db_session() as session:
+            result = await PermissionInheritanceService.revoke_additional_permission(
+                role_name, resource, action, session
+            )
+            await session.commit()
+        
+        status_code = 200 if result["success"] else 400
+        return json(result, status=status_code)
+        
+    except Exception as e:
+        return json({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['GET'])
+@protected()
+async def get_additional_permissions(request, role_name):
+    """
+    获取角色的所有额外授权
+    
+    Returns:
+        JSON: 额外授权列表
+    """
+    try:
+        async with request.app.ctx.db_session() as session:
+            result = await PermissionInheritanceService.get_additional_permissions(
+                role_name, session
+            )
+        
+        if result["success"]:
+            return json(result, status=200)
+        else:
+            return json(result, status=400)
+            
+    except Exception as e:
+        return json({
+            "success": False,
+            "error": str(e)
+        }, status=500)

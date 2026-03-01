@@ -291,3 +291,187 @@ class PermissionInheritanceService:
         ]
         for key in keys_to_remove:
             del _permission_cache[key]
+    
+    # ==================== 额外授权管理 ====================
+    
+    @staticmethod
+    async def grant_additional_permission(
+        role_name: str,
+        resource: str,
+        action: str,
+        session: AsyncSession
+    ) -> Dict:
+        """
+        为角色添加额外授权
+        
+        Args:
+            role_name: 角色名称
+            resource: 资源名称
+            action: 操作类型
+            session: 数据库会话
+        
+        Returns:
+            Dict: 授权结果
+        """
+        try:
+            # 检查角色是否存在
+            role_stmt = select(Role).where(Role.name == role_name)
+            result = await session.execute(role_stmt)
+            role = result.scalar_one_or_none()
+            
+            if not role:
+                return {
+                    "success": False,
+                    "message": f"Role '{role_name}' not found"
+                }
+            
+            # 检查权限是否已存在
+            existing_stmt = select(RolePermission).where(
+                RolePermission.role == role_name,
+                RolePermission.resource == resource,
+                RolePermission.action == action
+            )
+            result = await session.execute(existing_stmt)
+            existing_perm = result.scalar_one_or_none()
+            
+            if existing_perm:
+                if existing_perm.is_additional:
+                    return {
+                        "success": False,
+                        "message": "Additional permission already exists"
+                    }
+                else:
+                    # 已存在继承权限，更新为额外授权
+                    existing_perm.is_additional = True
+                    await session.flush()
+                    
+                    # 清除缓存
+                    PermissionInheritanceService.invalidate_role_cache(role_name)
+                    
+                    return {
+                        "success": True,
+                        "message": f"Existing permission upgraded to additional authorization",
+                        "upgraded": True
+                    }
+            
+            # 创建新的额外授权
+            new_perm = RolePermission(
+                role=role_name,
+                resource=resource,
+                action=action,
+                is_additional=True
+            )
+            session.add(new_perm)
+            await session.flush()
+            
+            # 清除缓存
+            PermissionInheritanceService.invalidate_role_cache(role_name)
+            
+            return {
+                "success": True,
+                "message": f"Additional permission granted: {action} on {resource} for role {role_name}",
+                "permission_id": new_perm.id
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e)
+            }
+    
+    @staticmethod
+    async def revoke_additional_permission(
+        role_name: str,
+        resource: str,
+        action: str,
+        session: AsyncSession
+    ) -> Dict:
+        """
+        撤销角色的额外授权
+        
+        Args:
+            role_name: 角色名称
+            resource: 资源名称
+            action: 操作类型
+            session: 数据库会话
+        
+        Returns:
+            Dict: 撤销结果
+        """
+        try:
+            # 查找额外授权
+            stmt = select(RolePermission).where(
+                RolePermission.role == role_name,
+                RolePermission.resource == resource,
+                RolePermission.action == action,
+                RolePermission.is_additional == True
+            )
+            result = await session.execute(stmt)
+            perm = result.scalar_one_or_none()
+            
+            if not perm:
+                return {
+                    "success": False,
+                    "message": "Additional permission not found"
+                }
+            
+            # 删除额外授权
+            await session.delete(perm)
+            await session.flush()
+            
+            # 清除缓存
+            PermissionInheritanceService.invalidate_role_cache(role_name)
+            
+            return {
+                "success": True,
+                "message": f"Additional permission revoked: {action} on {resource} for role {role_name}"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e)
+            }
+    
+    @staticmethod
+    async def get_additional_permissions(
+        role_name: str,
+        session: AsyncSession
+    ) -> Dict:
+        """
+        获取角色的所有额外授权
+        
+        Args:
+            role_name: 角色名称
+            session: 数据库会话
+        
+        Returns:
+            Dict: 额外授权列表
+        """
+        try:
+            stmt = select(RolePermission).where(
+                RolePermission.role == role_name,
+                RolePermission.is_additional == True
+            )
+            result = await session.execute(stmt)
+            additional_perms = result.scalars().all()
+            
+            return {
+                "success": True,
+                "role": role_name,
+                "additional_permissions": [
+                    {
+                        "resource": perm.resource,
+                        "action": perm.action,
+                        "id": perm.id
+                    }
+                    for perm in additional_perms
+                ],
+                "count": len(additional_perms)
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e)
+            }

@@ -102,3 +102,39 @@ export async function clearPermissionCache() {
   )
   return response.data
 }
+
+/**
+ * 为角色添加额外授权
+ */
+export async function grantAdditionalPermission(
+  roleName: string,
+  data: {
+    resource: string
+    action: string
+  }
+) {
+  const response = await api.post(`/roles/${roleName}/permissions/additional`, data)
+  return response.data
+}
+
+/**
+ * 撤销角色的额外授权
+ */
+export async function revokeAdditionalPermission(
+  roleName: string,
+  params: {
+    resource: string
+    action: string
+  }
+) {
+  const response = await api.delete(`/roles/${roleName}/permissions/additional`, { params })
+  return response.data
+}
+
+/**
+ * 获取角色的额外授权列表
+ */
+export async function getAdditionalPermissions(roleName: string) {
+  const response = await api.get(`/roles/${roleName}/permissions/additional`)
+  return response.data
+}

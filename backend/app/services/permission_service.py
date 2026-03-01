@@ -2,12 +2,14 @@
 Permission Service - 权限服务层
 
 集中式权限检查服务，实现 4 级 RBAC 权限验证。
+已集成权限继承机制。
 """
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 from ..models.role_permission import RolePermission
 from ..models.user import User, UserRole
+from .permission_inheritance_service import PermissionInheritanceService
 
 
 # 权限缓存（生产环境建议使用 Redis）
@@ -55,17 +57,16 @@ async def check_permission(
         _permission_cache[cache_key] = result
         return result
     
-    # 查询数据库中的权限矩阵
+    # 使用权限继承服务检查权限（支持继承）
     try:
-        stmt = select(RolePermission).where(
-            RolePermission.role == role,
-            RolePermission.resource == resource,
-            RolePermission.action == action
+        result = await PermissionInheritanceService.check_permission_with_inheritance(
+            role,
+            resource,
+            action,
+            session
         )
-        result = await session.execute(stmt)
-        permission = result.scalar_one_or_none()
         
-        has_permission = permission is not None
+        has_permission = result["has_permission"]
         _permission_cache[cache_key] = has_permission
         return has_permission
     except Exception:
