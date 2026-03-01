@@ -1,10 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type {
-  RouteRecordRaw,
-  Router,
-  NavigationGuardNext,
-  RouteLocationNormalized,
-} from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePermissionMatrixStore } from '@/stores/permission-matrix'
 
@@ -120,7 +115,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   // 设置页面标题
   document.title = (to.meta.title as string) || 'CS Ops 运营系统'
 

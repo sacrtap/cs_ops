@@ -42,9 +42,6 @@ export default defineConfig({
     // 导航超时：30 秒
     navigationTimeout: 30000,
 
-    // 请求超时：60 秒
-    requestTimeout: 60000,
-
     // 仅在失败时收集追踪
     trace: "on-first-retry",
 
@@ -122,10 +119,11 @@ export default defineConfig({
   ],
 
   // Web 服务器配置（用于本地开发测试）
-  webServer: {
-    command: process.env.CI ? undefined : "npm run dev",
-    url: process.env.BASE_URL || "http://localhost:3000",
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: process.env.CI ? "echo 'CI mode'" : "npm run dev",
+      url: process.env.BASE_URL || "http://localhost:3000",
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
 });

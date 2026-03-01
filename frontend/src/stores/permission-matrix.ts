@@ -12,7 +12,7 @@ import {
   clearCache,
 } from '@/api/permission-matrix'
 import { useAuthStore } from './auth'
-import type { RolePermissions, ModulePermissions } from '@/types/permission-matrix'
+import type { RolePermissions } from '@/types/permission-matrix'
 
 /**
  * 权限矩阵 Store

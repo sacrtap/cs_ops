@@ -53,14 +53,21 @@ export const usePermissionStore = defineStore('permission', () => {
         return true
       }
 
+      // 确保 currentRole 不为 null
+      if (!currentRole) {
+        return false
+      }
+
       // 查询权限矩阵
-      if (!matrix.value[currentRole]) {
+      const rolePermissions = matrix.value[currentRole]
+      if (!rolePermissions) {
         return false
       }
-      if (!matrix.value[currentRole][resource]) {
+      const resourcePermissions = rolePermissions[resource]
+      if (!resourcePermissions) {
         return false
       }
-      return matrix.value[currentRole][resource].includes(action)
+      return resourcePermissions.includes(action)
     }
   })
 
@@ -128,7 +135,7 @@ export const usePermissionStore = defineStore('permission', () => {
    */
   async function checkPermission(resource: PermissionResource, action: PermissionAction) {
     try {
-      const response = await checkPermissionApi(resource, action)
+      const response = await checkPermissionApi({ resource, action })
       return { success: response.data.has_permission }
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : '权限检查失败' }
@@ -148,7 +155,7 @@ export const usePermissionStore = defineStore('permission', () => {
     error.value = null
 
     try {
-      const response = await updatePermissionMatrixApi(role, resource, action, enabled)
+      const response = await updatePermissionMatrixApi({ role, resource, action, enabled })
 
       // 更新本地缓存
       if (enabled) {
