@@ -45,7 +45,7 @@ async def get_role_hierarchy(request):
         }, status=500)
 
 
-@permission_inheritance_bp.route('/roles/<role_name:string>/permissions', methods=['GET'])
+@permission_inheritance_bp.route('/roles/<role_name:str>/permissions', methods=['GET'])
 @AuthMiddleware.require_auth
 @PermissionMiddleware.require_permission("role", "read")
 async def get_role_permissions(request, role_name):
@@ -150,7 +150,7 @@ async def clear_permission_cache(request):
 
 # ==================== 额外授权管理 API ====================
 
-@permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['POST'])
+@permission_inheritance_bp.route('/roles/<role_name:str>/grant-additional', methods=['POST'])
 @AuthMiddleware.require_auth
 async def grant_additional_permission(request, role_name):
     """
@@ -190,7 +190,7 @@ async def grant_additional_permission(request, role_name):
         }, status=500)
 
 
-@permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['DELETE'])
+@permission_inheritance_bp.route('/roles/<role_name:str>/revoke-additional', methods=['DELETE'])
 @AuthMiddleware.require_auth
 async def revoke_additional_permission(request, role_name):
     """
@@ -229,7 +229,7 @@ async def revoke_additional_permission(request, role_name):
         }, status=500)
 
 
-@permission_inheritance_bp.route('/roles/<role_name:string>/permissions/additional', methods=['GET'])
+@permission_inheritance_bp.route('/roles/<role_name:str>/additional-permissions', methods=['GET'])
 @AuthMiddleware.require_auth
 async def get_additional_permissions(request, role_name):
     """
