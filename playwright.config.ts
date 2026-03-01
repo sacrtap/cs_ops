@@ -8,6 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
  */
 
 export default defineConfig({
+  // 全局 setup - 创建认证状态
+  globalSetup: require.resolve("./tests/global-setup"),
+
   // 测试目录配置
   testDir: "./tests",
   testMatch: ["**/e2e/**/*.spec.ts", "**/api/**/*.spec.ts"],
