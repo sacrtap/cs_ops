@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   // 全局 setup - 创建认证状态
-  globalSetup: require.resolve("./tests/global-setup"),
+  globalSetup: "./tests/global-setup.ts",
 
   // 测试目录配置
   testDir: "./tests",
@@ -34,7 +34,12 @@ export default defineConfig({
   // 共享配置
   use: {
     // 基础 URL（支持环境变量）
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    // API 测试使用后端端口 8000，E2E 测试使用前端端口 3000
+    baseURL:
+      process.env.BASE_URL ||
+      (process.env.PLAYWRIGHT_API_ONLY
+        ? "http://localhost:8000"
+        : "http://localhost:3000"),
 
     // 浏览器上下文配置
     viewport: { width: 1920, height: 1080 },

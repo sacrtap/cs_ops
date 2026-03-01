@@ -16,6 +16,14 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
+  // 测试用 JWT Token（管理员）- 使用后端 SECRET_KEY 生成
+  const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbi11c2VyLWlkIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJhZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4iLCJleHAiOjE4MDM5MTQ4MDV9.xpUGpkeGq0tjSlKcljc7bRYLb63Amof208HmjF4D_Vg";
+  
+  // 认证请求头
+  const authHeaders = {
+    "Authorization": `Bearer ${ADMIN_TOKEN}`,
+  };
+  
   /**
    * 验收标准 1: Admin 进入权限审计页面
    * Given Admin 进入权限审计页面
@@ -30,6 +38,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
 
     // 期望返回 200 OK
     expect(response.status()).toBe(200);
+    headers: authHeaders,
   });
 
   /**
@@ -45,6 +54,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
       params: {
         user_id: "123",
       },
+    headers: authHeaders,
     });
 
     expect(response.status()).toBe(200);
@@ -66,6 +76,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
         start_date: "2026-01-01",
         end_date: "2026-01-31",
       },
+    headers: authHeaders,
     });
 
     expect(response.status()).toBe(200);
@@ -139,6 +150,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
         page: 1,
         page_size: 10,
       },
+    headers: authHeaders,
     });
 
     expect(response.status()).toBe(200);
@@ -163,6 +175,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
         sort_by: "timestamp",
         sort_order: "desc",
       },
+    headers: authHeaders,
     });
 
     expect(response.status()).toBe(200);
@@ -212,6 +225,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
       params: {
         anomaly_type: "unauthorized_access",
       },
+    headers: authHeaders,
     });
 
     expect(response.status()).toBe(200);
@@ -233,6 +247,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
       params: {
         format: "csv",
       },
+    headers: authHeaders,
     });
 
     expect(response.status()).toBe(200);
