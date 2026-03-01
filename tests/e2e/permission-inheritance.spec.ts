@@ -20,7 +20,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
    * And 支持额外授权
    */
 
-  test.skip("[P0] 应该显示角色层级关系可视化", async ({ page }) => {
+  test("[P0] 应该显示角色层级关系可视化", async ({ page }) => {
     // 期望：访问角色管理页面时，显示角色层级关系图
     await page.goto("/admin/roles");
 
@@ -37,7 +37,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P0] 经理角色应该显示继承自专员的权限", async ({ page }) => {
+  test("[P0] 经理角色应该显示继承自专员的权限", async ({ page }) => {
     // 期望：查看经理角色详情时，显示继承的权限
     await page.goto("/admin/roles/manager");
 
@@ -51,7 +51,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(inheritedSection.getByText("结算处理")).toBeVisible();
   });
 
-  test.skip("[P0] 经理角色应该显示继承自销售的权限", async ({ page }) => {
+  test("[P0] 经理角色应该显示继承自销售的权限", async ({ page }) => {
     // 期望：经理显示继承自销售的权限
     await page.goto("/admin/roles/manager");
 
@@ -60,7 +60,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(inheritedSection.getByText("客户查看")).toBeVisible();
   });
 
-  test.skip("[P1] Admin 角色应该显示继承所有下级角色的权限", async ({
+  test("[P1] Admin 角色应该显示继承所有下级角色的权限", async ({
     page,
   }) => {
     // 期望：Admin 显示继承经理、专员、销售的权限
@@ -74,7 +74,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(inheritedSection.getByText("销售")).toBeVisible();
   });
 
-  test.skip("[P1] 专员角色应该显示继承自销售的权限", async ({ page }) => {
+  test("[P1] 专员角色应该显示继承自销售的权限", async ({ page }) => {
     // 期望：专员显示继承自销售的权限
     await page.goto("/admin/roles/specialist");
 
@@ -83,7 +83,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(inheritedSection.getByText("客户查看")).toBeVisible();
   });
 
-  test.skip("[P2] 应该支持为经理角色添加额外授权", async ({ page }) => {
+  test("[P2] 应该支持为经理角色添加额外授权", async ({ page }) => {
     // 期望：在角色管理页面可以为经理添加额外权限
     await page.goto("/admin/roles/manager/permissions");
 
@@ -104,7 +104,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(page.getByText("额外授权").first()).toBeVisible();
   });
 
-  test.skip("[P2] 额外授权应该与继承权限分开显示", async ({ page }) => {
+  test("[P2] 额外授权应该与继承权限分开显示", async ({ page }) => {
     // 期望：权限页面清楚区分继承权限和额外授权
     await page.goto("/admin/roles/manager/permissions");
 
@@ -120,7 +120,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(additionalSection).toBeVisible();
   });
 
-  test.skip("[P1] 权限检查工具应该显示权限来源", async ({ page }) => {
+  test("[P1] 权限检查工具应该显示权限来源", async ({ page }) => {
     // 期望：权限检查工具显示权限是来自继承还是额外授权
     await page.goto("/admin/permissions/checker");
 
@@ -137,7 +137,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(page.getByText("继承自：专员")).toBeVisible();
   });
 
-  test.skip("[P3] 应该可以编辑角色层级关系", async ({ page }) => {
+  test("[P3] 应该可以编辑角色层级关系", async ({ page }) => {
     // 期望：管理员可以编辑角色层级关系
     await page.goto("/admin/roles/hierarchy");
 
@@ -154,7 +154,7 @@ test.describe("[Story 1.7] 权限继承 E2E 测试 (ATDD)", () => {
     await expect(page.getByText("层级关系更新成功")).toBeVisible();
   });
 
-  test.skip("[P3] 更新层级关系后应该实时更新权限继承", async ({ page }) => {
+  test("[P3] 更新层级关系后应该实时更新权限继承", async ({ page }) => {
     // 期望：修改层级关系后，权限继承立即更新
     await page.goto("/admin/roles/hierarchy");
 

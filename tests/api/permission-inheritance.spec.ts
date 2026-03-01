@@ -20,7 +20,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
    * And 支持额外授权
    */
 
-  test.skip("[P0] 应该验证角色层级结构 (Admin > 经理 > 专员 > 销售)", async ({
+  test("[P0] 应该验证角色层级结构 (Admin > 经理 > 专员 > 销售)", async ({
     request,
   }) => {
     // 期望：查询角色层级接口返回正确的层级关系
@@ -50,7 +50,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     });
   });
 
-  test.skip("[P0] 经理角色应该自动继承专员的所有权限", async ({ request }) => {
+  test("[P0] 经理角色应该自动继承专员的所有权限", async ({ request }) => {
     // 期望：查询经理角色的权限时，包含专员的所有权限
     const response = await request.get("/api/v1/roles/manager/permissions");
 
@@ -83,7 +83,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P0] 经理角色应该自动继承销售的所有权限", async ({ request }) => {
+  test("[P0] 经理角色应该自动继承销售的所有权限", async ({ request }) => {
     // 期望：经理继承销售的权限
     const response = await request.get("/api/v1/roles/manager/permissions");
 
@@ -103,7 +103,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P1] Admin 角色应该继承所有下级角色的权限", async ({
+  test("[P1] Admin 角色应该继承所有下级角色的权限", async ({
     request,
   }) => {
     // 期望：Admin 继承经理、专员、销售的所有权限
@@ -119,7 +119,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P1] 专员角色应该自动继承销售的所有权限", async ({ request }) => {
+  test("[P1] 专员角色应该自动继承销售的所有权限", async ({ request }) => {
     // 期望：专员继承销售的权限
     const response = await request.get("/api/v1/roles/specialist/permissions");
 
@@ -139,7 +139,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P0] 销售角色不应该继承任何其他角色的权限", async ({
+  test("[P0] 销售角色不应该继承任何其他角色的权限", async ({
     request,
   }) => {
     // 期望：销售是最低级别，不继承任何权限
@@ -154,7 +154,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     expect(permissions.inherited_permissions).toEqual([]);
   });
 
-  test.skip("[P1] 应该支持额外授权机制", async ({ request }) => {
+  test("[P1] 应该支持额外授权机制", async ({ request }) => {
     // 期望：可以为高级角色分配低级角色没有的额外权限
     const response = await request.post(
       "/api/v1/roles/manager/permissions/grant",
@@ -177,7 +177,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     });
   });
 
-  test.skip("[P2] 额外授权应该与继承权限并存", async ({ request }) => {
+  test("[P2] 额外授权应该与继承权限并存", async ({ request }) => {
     // 期望：额外授权不影响继承权限
     const response = await request.get("/api/v1/roles/manager/permissions");
 
@@ -195,7 +195,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P1] 权限检查应该包含继承的权限", async ({ request }) => {
+  test("[P1] 权限检查应该包含继承的权限", async ({ request }) => {
     // 期望：检查经理的 customer:delete 权限时返回 true（从专员继承）
     const response = await request.post("/api/v1/permissions/check", {
       data: {
@@ -215,7 +215,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     });
   });
 
-  test.skip("[P1] 权限检查应该识别额外授权", async ({ request }) => {
+  test("[P1] 权限检查应该识别额外授权", async ({ request }) => {
     // 期望：检查经理的 role:read 权限时返回 true（额外授权）
     const response = await request.post("/api/v1/permissions/check", {
       data: {
@@ -234,7 +234,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     });
   });
 
-  test.skip("[P2] 更新角色层级时应该重新计算继承权限", async ({ request }) => {
+  test("[P2] 更新角色层级时应该重新计算继承权限", async ({ request }) => {
     // 期望：修改角色层级关系后，继承权限应该重新计算
     const response = await request.put("/api/v1/roles/hierarchy/update", {
       data: {
@@ -256,7 +256,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     expect(permissions.inherited_from).not.toContain("sales"); // 不再继承销售
   });
 
-  test.skip("[P3] 应该缓存继承权限以提高性能", async ({ request }) => {
+  test("[P3] 应该缓存继承权限以提高性能", async ({ request }) => {
     // 期望：多次查询同一角色的权限时，使用缓存
     const startTime = Date.now();
 
