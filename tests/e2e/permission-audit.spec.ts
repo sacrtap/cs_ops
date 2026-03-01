@@ -8,11 +8,11 @@ import { test, expect } from "@playwright/test";
  * I want 查看权限使用日志，
  * so that 审计权限合规性.
  *
- * TDD Phase: RED (测试已生成，等待实现)
+ * TDD Phase: GREEN (测试已启用，等待运行)
  *
  * 运行方式:
  * 1. 确保后端服务和前端服务都运行
- * 2. 运行测试：npm test -- tests/e2e/permission-audit.spec.ts
+ * 2. 运行测试：npx playwright test tests/e2e/permission-audit.spec.ts
  */
 
 test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
@@ -24,7 +24,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
    * And 显示审计页面
    */
 
-  test.skip("[P0] 应该导航到权限审计页面", async ({ page }) => {
+  test("[P0] 应该导航到权限审计页面", async ({ page }) => {
     // 期望：用户可以导航到权限审计页面
     await page.goto("/");
     // 登录（需要 admin 权限）
@@ -45,7 +45,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
    * Then 查询权限使用记录
    */
 
-  test.skip("[P0] 应该支持用户选择功能", async ({ page }) => {
+  test("[P0] 应该支持用户选择功能", async ({ page }) => {
     // 期望：用户可以选择要审计的用户
     await page.goto("/permissions/audit");
     // 选择用户
@@ -54,7 +54,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
     await expect(page.getByText("用户 ID: 123")).toBeVisible();
   });
 
-  test.skip("[P0] 应该支持日期范围选择功能", async ({ page }) => {
+  test("[P0] 应该支持日期范围选择功能", async ({ page }) => {
     // 期望：用户可以选择日期范围
     await page.goto("/permissions/audit");
     // 选择日期范围
@@ -73,7 +73,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
    * Then 显示权限使用记录列表
    */
 
-  test.skip("[P0] 应该显示权限使用记录列表", async ({ page }) => {
+  test("[P0] 应该显示权限使用记录列表", async ({ page }) => {
     // 期望：显示权限使用记录列表
     await page.goto("/permissions/audit");
     // 执行查询
@@ -84,7 +84,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
     await expect(rows).toBeGreaterThan(1);
   });
 
-  test.skip("[P1] 应该支持分页功能", async ({ page }) => {
+  test("[P1] 应该支持分页功能", async ({ page }) => {
     // 期望：支持分页功能
     await page.goto("/permissions/audit");
     // 执行查询
@@ -95,7 +95,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
     await expect(page.getByText("共 X 页")).toBeVisible();
   });
 
-  test.skip("[P1] 应该支持排序功能", async ({ page }) => {
+  test("[P1] 应该支持排序功能", async ({ page }) => {
     // 期望：支持排序功能
     await page.goto("/permissions/audit");
     // 执行查询
@@ -113,7 +113,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
    * Then 标记异常访问记录
    */
 
-  test.skip("[P1] 应该标记异常访问记录", async ({ page }) => {
+  test("[P1] 应该标记异常访问记录", async ({ page }) => {
     // 期望：异常访问记录会被标记
     await page.goto("/permissions/audit");
     // 执行查询
@@ -126,7 +126,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P1] 应该显示异常访问统计信息", async ({ page }) => {
+  test("[P1] 应该显示异常访问统计信息", async ({ page }) => {
     // 期望：显示异常访问统计信息
     await page.goto("/permissions/audit");
     // 执行查询
@@ -136,7 +136,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
     await expect(page.getByText("异常访问率")).toBeVisible();
   });
 
-  test.skip("[P2] 应该支持异常访问类型筛选", async ({ page }) => {
+  test("[P2] 应该支持异常访问类型筛选", async ({ page }) => {
     // 期望：支持按异常访问类型筛选
     await page.goto("/permissions/audit");
     // 选择异常访问类型
@@ -155,7 +155,7 @@ test.describe("[Story 1.8] 权限审计 E2E 测试 (ATDD)", () => {
     await expect(anomalyCells).toBeGreaterThan(0);
   });
 
-  test.skip("[P3] 应该支持导出权限审计记录", async ({ page }) => {
+  test("[P3] 应该支持导出权限审计记录", async ({ page }) => {
     // 期望：支持导出权限审计记录
     await page.goto("/permissions/audit");
     // 执行查询

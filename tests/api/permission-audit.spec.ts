@@ -8,11 +8,11 @@ import { test, expect } from "@playwright/test";
  * I want 查看权限使用日志，
  * so that 审计权限合规性.
  *
- * TDD Phase: RED (测试已生成，等待实现)
+ * TDD Phase: GREEN (测试已启用，等待运行)
  *
  * 运行方式:
- * 1. 确保后端服务运行：cd backend && source venv/bin/activate && python -m uvicorn app.main:app --reload --port 8000
- * 2. 运行测试：npm test -- tests/api/permission-audit.spec.ts
+ * 1. 确保后端服务运行：cd backend && source .venv/bin/activate && python -m uvicorn app.main:app --reload --port 8000
+ * 2. 运行测试：npx playwright test tests/api/permission-audit.spec.ts
  */
 
 test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
@@ -24,7 +24,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
    * And 显示审计页面
    */
 
-  test.skip("[P0] 应该验证权限审计页面访问权限", async ({ request }) => {
+  test("[P0] 应该验证权限审计页面访问权限", async ({ request }) => {
     // 期望：权限审计页面需要 Admin 权限
     const response = await request.get("/api/v1/permissions/audit");
 
@@ -39,7 +39,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
    * Then 查询权限使用记录
    */
 
-  test.skip("[P0] 应该支持按用户查询权限审计记录", async ({ request }) => {
+  test("[P0] 应该支持按用户查询权限审计记录", async ({ request }) => {
     // 期望：按用户查询权限审计接口
     const response = await request.get("/api/v1/permissions/audit", {
       params: {
@@ -59,7 +59,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P0] 应该支持按日期范围查询权限审计记录", async ({ request }) => {
+  test("[P0] 应该支持按日期范围查询权限审计记录", async ({ request }) => {
     // 期望：按日期范围查询权限审计接口
     const response = await request.get("/api/v1/permissions/audit", {
       params: {
@@ -80,7 +80,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P0] 应该支持组合查询（用户+日期范围）", async ({ request }) => {
+  test("[P0] 应该支持组合查询（用户+日期范围）", async ({ request }) => {
     // 期望：组合查询权限审计接口
     const response = await request.get("/api/v1/permissions/audit", {
       params: {
@@ -110,7 +110,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
    * Then 显示权限使用记录列表
    */
 
-  test.skip("[P0] 应该返回权限审计记录列表", async ({ request }) => {
+  test("[P0] 应该返回权限审计记录列表", async ({ request }) => {
     // 期望：权限审计查询返回记录列表
     const response = await request.get("/api/v1/permissions/audit");
 
@@ -132,7 +132,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P1] 应该支持分页查询权限审计记录", async ({ request }) => {
+  test("[P1] 应该支持分页查询权限审计记录", async ({ request }) => {
     // 期望：权限审计查询支持分页
     const response = await request.get("/api/v1/permissions/audit", {
       params: {
@@ -156,7 +156,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     expect(result.page_size).toBe(10);
   });
 
-  test.skip("[P1] 应该支持排序权限审计记录", async ({ request }) => {
+  test("[P1] 应该支持排序权限审计记录", async ({ request }) => {
     // 期望：权限审计查询支持排序
     const response = await request.get("/api/v1/permissions/audit", {
       params: {
@@ -178,7 +178,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
    * Then 标记异常访问记录
    */
 
-  test.skip("[P1] 应该标记异常访问记录", async ({ request }) => {
+  test("[P1] 应该标记异常访问记录", async ({ request }) => {
     // 期望：异常访问记录会被标记
     const response = await request.get("/api/v1/permissions/audit");
 
@@ -194,7 +194,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P1] 应该返回异常访问统计信息", async ({ request }) => {
+  test("[P1] 应该返回异常访问统计信息", async ({ request }) => {
     // 期望：返回异常访问统计信息
     const response = await request.get("/api/v1/permissions/audit/statistics");
 
@@ -206,7 +206,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     expect(statistics.anomaly_rate).toBeGreaterThanOrEqual(0);
   });
 
-  test.skip("[P2] 应该支持异常访问类型筛选", async ({ request }) => {
+  test("[P2] 应该支持异常访问类型筛选", async ({ request }) => {
     // 期望：支持按异常访问类型筛选
     const response = await request.get("/api/v1/permissions/audit", {
       params: {
@@ -227,7 +227,7 @@ test.describe("[Story 1.8] 权限审计 API 测试 (ATDD)", () => {
     );
   });
 
-  test.skip("[P3] 应该支持导出权限审计记录", async ({ request }) => {
+  test("[P3] 应该支持导出权限审计记录", async ({ request }) => {
     // 期望：支持导出权限审计记录
     const response = await request.get("/api/v1/permissions/audit/export", {
       params: {
