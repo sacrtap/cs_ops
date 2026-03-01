@@ -95,6 +95,19 @@ const routes: RouteRecordRaw[] = [
       requiresAdmin: true,
     },
   },
+  // 权限审计（仅 Admin）
+  {
+    path: '/permissions/audit',
+    name: 'PermissionAudit',
+    component: () => import('@/views/permission/PermissionAudit.vue'),
+    meta: {
+      title: '权限审计 - CS Ops',
+      requiresAuth: true,
+      module: 'permission',
+      action: 'read',
+      requiresAdmin: true,
+    },
+  },
   {
     path: '/admin/role/:id/config',
     name: 'RoleConfig',
