@@ -8,7 +8,11 @@ import { test, expect } from "@playwright/test";
  * I want 实现权限继承（经理继承专员权限）,
  * so that 简化权限配置.
  *
- * TDD Phase: RED (所有测试标记为 skipped，等待功能实现)
+ * TDD Phase: GREEN (测试已启用，等待验证)
+ *
+ * 运行方式:
+ * 1. 确保后端服务运行：cd backend && source venv/bin/activate && python -m uvicorn app.main:app --reload --port 8000
+ * 2. 运行测试：npm test -- tests/api/permission-inheritance.spec.ts
  */
 
 test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
@@ -103,9 +107,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test("[P1] Admin 角色应该继承所有下级角色的权限", async ({
-    request,
-  }) => {
+  test("[P1] Admin 角色应该继承所有下级角色的权限", async ({ request }) => {
     // 期望：Admin 继承经理、专员、销售的所有权限
     const response = await request.get("/api/v1/roles/admin/permissions");
 
@@ -139,9 +141,7 @@ test.describe("[Story 1.7] 权限继承 API 测试 (ATDD)", () => {
     );
   });
 
-  test("[P0] 销售角色不应该继承任何其他角色的权限", async ({
-    request,
-  }) => {
+  test("[P0] 销售角色不应该继承任何其他角色的权限", async ({ request }) => {
     // 期望：销售是最低级别，不继承任何权限
     const response = await request.get("/api/v1/roles/sales/permissions");
 
