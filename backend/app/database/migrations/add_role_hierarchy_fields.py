@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sqlalchemy import text
-from app.database import async_engine
+from app.database import engine
 
 
 async def migrate():
@@ -24,7 +24,7 @@ async def migrate():
     
     print("开始迁移：添加角色层级字段...")
     
-    async with async_engine.begin() as conn:
+    async with engine.begin() as conn:
         try:
             # 1. 添加 level 字段
             print("添加 level 字段到 roles 表...")

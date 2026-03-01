@@ -11,14 +11,14 @@ from sanic.response import json
 from sanic_jwt import protected
 from ..services.permission_inheritance_service import PermissionInheritanceService
 from ..models.user import UserRole
-from ..middleware.permission_middleware import check_user_role
+from ..middleware.permission_middleware import PermissionMiddleware
 
 permission_inheritance_bp = Blueprint('permission_inheritance', url_prefix='/api/v1')
 
 
 @permission_inheritance_bp.route('/roles/hierarchy', methods=['GET'])
 @protected()
-@check_user_role([UserRole.ADMIN.value])
+@PermissionMiddleware.require_permission("role", "read")
 async def get_role_hierarchy(request):
     """
     获取角色层级结构
@@ -43,7 +43,7 @@ async def get_role_hierarchy(request):
 
 @permission_inheritance_bp.route('/roles/<role_name:string>/permissions', methods=['GET'])
 @protected()
-@check_user_role([UserRole.ADMIN.value, UserRole.MANAGER.value])
+@PermissionMiddleware.require_permission("role", "read")
 async def get_role_permissions(request, role_name):
     """
     获取角色的所有权限（包含继承权限）
@@ -125,7 +125,7 @@ async def check_permission(request):
 
 @permission_inheritance_bp.route('/permissions/cache/clear', methods=['POST'])
 @protected()
-@check_user_role([UserRole.ADMIN.value])
+@PermissionMiddleware.require_permission("role", "delete")
 async def clear_permission_cache(request):
     """
     清除权限缓存（管理员操作）
