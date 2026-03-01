@@ -24,39 +24,40 @@ auth_bp = Blueprint("auth", url_prefix="/api/v1/auth")
 async def login(request: Request):
     """
     用户登录
-    
-    请求体:
-        username: 用户名
-        password: 密码
-        
-    响应:
-        access_token: 访问 Token
-        refresh_token: 刷新 Token
-        token_type: Token 类型 (bearer)
-        expires_in: Access Token 过期时间（秒）
-        user: 用户信息
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    print("=== LOGIN API CALLED ===")  # 直接打印到 stdout
+    
     try:
         # 验证请求数据
+        print(f"Request JSON: {request.json}")
         data = LoginRequest(**request.json)
+        print(f"LoginRequest validated: {data.username}")
 
         # 获取数据库会话
+        print(f"Getting db session from request.ctx.db: {hasattr(request.ctx, 'db')}")
         db: AsyncSession = request.ctx.db
+        print(f"DB session type: {type(db)}")
 
         # 创建认证服务
         auth_service = AuthService(db)
+        print(f"AuthService created")
 
         # 获取客户端 IP
         client_ip = request.remote_addr
+        print(f"Client IP: {client_ip}")
 
         # 认证并生成 Token
+        print("Calling authenticate...")
         user, access_token, refresh_token = await auth_service.authenticate(
             username=data.username,
             password=data.password,
             client_ip=client_ip
         )
+        print(f"Authentication successful: {user.username}")
 
-        # 返回响应
+        # 返回响应（使用 mode='json' 来序列化 datetime）
         response_data = LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -66,7 +67,7 @@ async def login(request: Request):
         )
 
         return json(
-            {"data": response_data.model_dump()},
+            {"data": response_data.model_dump(mode='json')},
             status=200
         )
 
@@ -173,11 +174,16 @@ async def refresh_token(request: Request):
         )
 
     except Exception as e:
+        import traceback
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Login error: {type(e).__name__}: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return json(
             {
                 "error": {
                     "code": "INTERNAL_ERROR",
-                    "message": "服务器内部错误",
+                    "message": f"服务器内部错误：{str(e)}",
                 }
             },
             status=500

@@ -31,10 +31,10 @@ class UserResponse(BaseModel):
     id: int
     username: str
     real_name: str
-    role: UserRole
+    role: str  # UserRole 枚举值 (admin/manager/specialist/sales)
     email: Optional[str] = None
     phone: Optional[str] = None
-    status: UserStatus
+    status: str  # UserStatus 枚举值 (active/inactive/locked)
     created_at: datetime
 
 

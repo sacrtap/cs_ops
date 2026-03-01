@@ -1,16 +1,7 @@
 """
 密码服务 - bcrypt 加密与验证
 """
-from passlib.context import CryptContext
-from app.config.settings import settings
-
-
-# bcrypt 密码上下文
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=settings.BCRYPT_ROUNDS,
-)
+import bcrypt
 
 
 def hash_password(password: str) -> str:
@@ -23,7 +14,7 @@ def hash_password(password: str) -> str:
     Returns:
         str: bcrypt 加密后的密码哈希
     """
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -37,7 +28,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         bool: 密码是否匹配
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 
 def needs_rehash(hashed_password: str) -> bool:

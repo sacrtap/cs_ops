@@ -81,12 +81,17 @@ def register_events(app: Sanic) -> None:
         """请求前处理"""
         # 记录请求日志
         logger.debug(f"{request.method} {request.path}")
+        
+        # 创建数据库会话并存储到请求上下文
+        from app.database import async_session_maker
+        request.ctx.db = async_session_maker()
 
     @app.on_response
     async def after_response(request, response):
         """响应后处理"""
-        # 可以在这里添加统一的响应处理逻辑
-        pass
+        # 关闭数据库会话
+        if hasattr(request.ctx, 'db'):
+            await request.ctx.db.close()
 
 
 def register_error_handlers(app: Sanic) -> None:
@@ -119,13 +124,22 @@ def register_error_handlers(app: Sanic) -> None:
         )
 
     @app.exception(Exception)
-    async def handle_generic_exception(request, exception):
-        logger.error(f"未处理异常：{exception}", exc_info=True)
-        return response.json(
+    async def handle_all_exceptions(request, exception):
+        """处理所有未捕获的异常"""
+        import traceback
+        # 打印详细错误堆栈到日志
+        error_traceback = traceback.format_exc()
+        logger.error(f"Unhandled exception: {type(exception).__name__}: {exception}")
+        logger.error(f"Traceback:\n{error_traceback}")
+        print(f"Unhandled exception: {exception}")  # 直接打印到 stdout
+        print(f"Traceback:\n{error_traceback}")
+        
+        return json(
             {
                 "error": {
                     "code": "INTERNAL_ERROR",
-                    "message": "服务器内部错误",
+                    "message": f"服务器内部错误：{str(exception)}",
+                    "details": error_traceback
                 }
             },
             status=500
