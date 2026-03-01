@@ -11,6 +11,7 @@ from app.routes.customer_routes import customer_bp
 from app.routes.permission_matrix_routes import permission_matrix_bp
 from app.routes.role_management_routes import role_management_bp
 from app.routes.permission_inheritance_routes import permission_inheritance_bp
+from app.routes.permission_audit_routes import permission_audit_bp
 
 # 配置日志
 logging.basicConfig(
@@ -40,6 +41,7 @@ def create_app() -> Sanic:
     app.blueprint(permission_matrix_bp)
     app.blueprint(role_management_bp)
     app.blueprint(permission_inheritance_bp)
+    app.blueprint(permission_audit_bp)
 
     # 注册事件处理器
     register_events(app)
