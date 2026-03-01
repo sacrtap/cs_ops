@@ -82,6 +82,31 @@ const routes: RouteRecordRaw[] = [
       requiresAdmin: true,
     },
   },
+  // 角色管理（仅 Admin）
+  {
+    path: '/admin/role',
+    name: 'RoleList',
+    component: () => import('@/views/admin/role/RoleList.vue'),
+    meta: {
+      title: '角色管理 - CS Ops',
+      requiresAuth: true,
+      module: 'role',
+      action: 'read',
+      requiresAdmin: true,
+    },
+  },
+  {
+    path: '/admin/role/:id/config',
+    name: 'RoleConfig',
+    component: () => import('@/views/admin/role/RoleConfig.vue'),
+    meta: {
+      title: '角色权限配置 - CS Ops',
+      requiresAuth: true,
+      module: 'role',
+      action: 'update',
+      requiresAdmin: true,
+    },
+  },
   // 403 权限拒绝页面
   {
     path: '/403',
