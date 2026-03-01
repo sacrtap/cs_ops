@@ -9,7 +9,7 @@ Permission Audit Service - 权限审计服务
 - export_audit_logs: 导出权限审计记录
 """
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Any
 from sqlalchemy import select, and_, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
