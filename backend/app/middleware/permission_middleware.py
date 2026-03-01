@@ -12,6 +12,7 @@ from sanic.log import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.user import User, UserRole
 from ..services.permission_service import check_permission
+from ..services.permission_audit_service import PermissionAuditService
 from ..utils.data_permission_filter import set_current_user_context, apply_data_permission_filter
 import json
 
@@ -64,6 +65,22 @@ class PermissionMiddleware:
                         resource,
                         action,
                         request.ctx.db
+                    )
+                    
+                    # 记录权限审计日志
+                    ip_address = request.ip or request.remote_addr or "unknown"
+                    await PermissionAuditService.create_audit_log(
+                        session=request.ctx.db,
+                        user_id=str(user_id),
+                        role=user_role,
+                        resource=resource,
+                        action=action,
+                        ip_address=ip_address,
+                        details={
+                            "path": request.path,
+                            "method": request.method,
+                            "has_permission": has_permission
+                        }
                     )
                     
                     if not has_permission:
