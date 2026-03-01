@@ -1,3 +1,4 @@
+from datetime import datetime
 """
 Permission Inheritance Service - 权限继承服务
 
@@ -356,6 +357,7 @@ class PermissionInheritanceService:
             
             # 创建新的额外授权
             new_perm = RolePermission(
+            created_at=datetime.utcnow(),
                 role=role_name,
                 resource=resource,
                 action=action,
