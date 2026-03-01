@@ -119,11 +119,14 @@ export default defineConfig({
   ],
 
   // Web 服务器配置（用于本地开发测试）
-  webServer: [
-    {
-      command: process.env.CI ? "echo 'CI mode'" : "npm run dev",
-      url: process.env.BASE_URL || "http://localhost:3000",
-      reuseExistingServer: !process.env.CI,
-    },
-  ],
+  // 注意：API 测试不需要 webServer，只用于 E2E 测试
+  webServer: process.env.PLAYWRIGHT_API_ONLY
+    ? []
+    : [
+        {
+          command: process.env.CI ? "echo 'CI mode'" : "npm run dev",
+          url: process.env.BASE_URL || "http://localhost:3000",
+          reuseExistingServer: !process.env.CI,
+        },
+      ],
 });
