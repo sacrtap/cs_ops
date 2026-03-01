@@ -8,6 +8,7 @@ from app.config.settings import settings
 from app.database import init_db, close_db
 from app.routes.auth_routes import auth_bp
 from app.routes.customer_routes import customer_bp
+from app.routes.permission_matrix_routes import permission_matrix_bp
 
 # 配置日志
 logging.basicConfig(
@@ -34,6 +35,7 @@ def create_app() -> Sanic:
     # 注册 Blueprint
     app.blueprint(auth_bp)
     app.blueprint(customer_bp)
+    app.blueprint(permission_matrix_bp)
 
     # 注册事件处理器
     register_events(app)
