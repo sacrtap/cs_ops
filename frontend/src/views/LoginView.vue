@@ -95,7 +95,10 @@ const handleLogin = async () => {
     loading.value = true
     error.value = ''
 
-    const result = await authStore.login(loginForm.username, loginForm.password)
+    const result = await authStore.login({
+      username: loginForm.username,
+      password: loginForm.password,
+    })
 
     if (result.success) {
       Message.success('登录成功')

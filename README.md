@@ -691,19 +691,19 @@ npm run dev
 
 ```bash
 # macOS (使用 Homebrew)
-brew install postgresql@15
-brew services start postgresql@15
-createdb cs_ops
+brew install postgresql@18
+brew services start postgresql@18
 
 # Ubuntu/Debian
-sudo apt-get install postgresql-15 postgresql-contrib-15
+sudo apt-get install postgresql-18 postgresql-contrib-18
 sudo systemctl start postgresql
 sudo -u postgres createdb cs_ops
 
 # 创建数据库用户
-sudo -u postgres psql
-CREATE USER cs_ops_user WITH PASSWORD 'cs_ops_password';
-GRANT ALL PRIVILEGES ON DATABASE cs_ops TO cs_ops_user;
+psql
+CREATE DATABASE op_cos;
+CREATE USER postgres WITH PASSWORD 'postgres';
+GRANT ALL PRIVILEGES ON DATABASE cs_ops TO postgres;
 \q
 ```
 
@@ -729,6 +729,7 @@ cp .env.example .env
 alembic upgrade head
 
 # 5. 启动开发服务器（支持热重载）
+kill -9 $(lsof -t -i :8000)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # 访问 API 文档：http://localhost:8000/docs
@@ -745,6 +746,7 @@ npm install
 # 2. 配置环境变量
 cp .env.example .env
 # 编辑 .env 设置 VITE_API_BASE_URL=http://localhost:8000/api/v1
+# DEBUG=false
 
 # 3. 启动开发服务器（支持热重载）
 npm run dev

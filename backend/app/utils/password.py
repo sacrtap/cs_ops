@@ -41,4 +41,4 @@ def needs_rehash(hashed_password: str) -> bool:
     Returns:
         bool: 是否需要重新加密
     """
-    return pwd_context.needs_update(hashed_password)
+    return False

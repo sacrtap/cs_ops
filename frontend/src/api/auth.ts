@@ -17,7 +17,7 @@ const API_PREFIX = '/auth'
  * @returns 登录响应（包含 Token 和用户信息）
  */
 export async function login(data: LoginRequest) {
-  const response = await api.post<LoginResponse>(`${API_PREFIX}/login`, data)
+  const response = await api.post<{ data: LoginResponse }>(`${API_PREFIX}/login`, data)
   return response.data.data
 }
 
@@ -27,7 +27,7 @@ export async function login(data: LoginRequest) {
  * @returns 新的 Token 响应
  */
 export async function refreshToken(data: RefreshTokenRequest) {
-  const response = await api.post<RefreshTokenResponse>(`${API_PREFIX}/refresh`, data)
+  const response = await api.post<{ data: RefreshTokenResponse }>(`${API_PREFIX}/refresh`, data)
   return response.data.data
 }
 

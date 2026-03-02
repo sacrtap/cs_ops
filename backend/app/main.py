@@ -4,6 +4,7 @@ Sanic 应用主入口
 import logging
 from sanic import Sanic, response
 from sanic.exceptions import NotFound, ServerError
+from sanic_cors import CORS
 from app.config.settings import settings
 from app.database import init_db, close_db
 from app.routes.auth_routes import auth_bp
@@ -32,8 +33,9 @@ def create_app() -> Sanic:
     app = Sanic("cs_ops")
 
     # 配置 CORS
-    app.config.CORS_ORIGINS = settings.CORS_ORIGINS
-    app.config.CORS_SUPPORTS_CREDENTIALS = True
+    # app.config.CORS_ORIGINS = settings.CORS_ORIGINS
+    # app.config.CORS_SUPPORTS_CREDENTIALS = True
+    CORS(app, resources={r"/*": {"origins": settings.CORS_ORIGINS, "credentials": True}})
 
     # 注册 Blueprint
     app.blueprint(auth_bp)
@@ -69,14 +71,14 @@ def register_events(app: Sanic) -> None:
     """注册应用事件处理器"""
 
     @app.before_server_start
-    async def before_server_start(app: Sanic, loop):
+    async def before_server_start(app: Sanic):
         """服务器启动前初始化数据库"""
         logger.info("初始化数据库连接...")
         await init_db()
         logger.info("数据库初始化完成")
 
     @app.after_server_stop
-    async def after_server_stop(app: Sanic, loop):
+    async def after_server_stop(app: Sanic):
         """服务器停止后关闭数据库连接"""
         logger.info("关闭数据库连接...")
         await close_db()
