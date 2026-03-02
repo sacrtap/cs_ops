@@ -124,15 +124,228 @@ npm run build
 
 #### 📦 部署步骤
 
-**1️⃣ 克隆项目到服务器**
+**方案选择**:
+
+| 方案                                              | 适用场景               | 网络要求 | 速度     |
+| ------------------------------------------------- | ---------------------- | -------- | -------- |
+| [方案 A](#方案-a-本地镜像导出导入无需-docker-hub) | 内网服务器、无外网访问 | 无需外网 | ⭐⭐⭐⭐ |
+| [方案 B](#方案-b-使用-docker-hub-推荐)            | 有外网访问的生产环境   | 需要外网 | ⭐⭐⭐   |
+
+---
+
+### 方案 A: 本地镜像导出导入（无需 Docker Hub）
+
+> **适用场景**: 内网服务器、无法访问外网、数据敏感环境  
+> **优势**: 无需注册 Docker Hub、镜像完全本地控制、部署速度快
+
+#### 步骤 1: 在开发机器上构建并导出镜像
 
 ```bash
-# SSH 登录到服务器
-ssh user@your-server-ip
+# 1. 构建后端镜像
+cd backend
+docker build -t cs_ops_backend:1.0.0 .
 
-# 克隆项目（或上传项目文件）
-git clone https://github.com/sacrtap/cs_ops.git
-cd cs_ops
+# 2. 构建前端镜像
+cd ../frontend
+docker build -t cs_ops_frontend:1.0.0 .
+
+# 3. 导出镜像为 tar 文件（压缩格式，体积小）
+docker save cs_ops_backend:1.0.0 | gzip > cs_ops_backend-1.0.0.tar.gz
+docker save cs_ops_frontend:1.0.0 | gzip > cs_ops_frontend-1.0.0.tar.gz
+
+# 4. 查看文件大小
+ls -lh cs_ops_*.tar.gz
+# 典型大小：backend ~150MB, frontend ~30MB
+```
+
+#### 步骤 2: 传输镜像文件到服务器
+
+**方式 1: 使用 scp 传输（推荐）**
+
+```bash
+# 在开发机器上执行
+scp cs_ops_backend-1.0.0.tar.gz user@your-server-ip:/opt/cs_ops/
+scp cs_ops_frontend-1.0.0.tar.gz user@your-server-ip:/opt/cs_ops/
+
+# 传输部署脚本和配置文件
+scp docker-compose.yml user@your-server-ip:/opt/cs_ops/
+scp .env.docker user@your-server-ip:/opt/cs_ops/.env
+```
+
+**方式 2: 使用 rsync 传输（支持断点续传）**
+
+```bash
+rsync -avz --progress cs_ops_*.tar.gz user@your-server-ip:/opt/cs_ops/
+rsync -avz --progress docker-compose.yml .env.docker user@your-server-ip:/opt/cs_ops/
+```
+
+**方式 3: 使用 U 盘或移动硬盘**
+
+```bash
+# 复制到移动存储设备
+cp cs_ops_*.tar.gz /mnt/usb-drive/
+# 物理携带到服务器位置，复制文件
+```
+
+#### 步骤 3: 在服务器上导入镜像并部署
+
+```bash
+# SSH 登录服务器
+ssh user@your-server-ip
+cd /opt/cs_ops
+
+# 1. 导入镜像（解压并加载）
+docker load < cs_ops_backend-1.0.0.tar.gz
+docker load < cs_ops_frontend-1.0.0.tar.gz
+
+# 或者使用管道（推荐）
+gunzip -c cs_ops_backend-1.0.0.tar.gz | docker load
+gunzip -c cs_ops_frontend-1.0.0.tar.gz | docker load
+
+# 2. 验证镜像已导入
+docker images | grep cs_ops
+# 应显示:
+# cs_ops_backend   1.0.0   <IMAGE_ID>   <DATE>
+# cs_ops_frontend  1.0.0   <IMAGE_ID>   <DATE>
+
+# 3. 配置环境变量
+cp .env.docker .env
+
+# 自动生成安全配置
+JWT_KEY=$(openssl rand -hex 32) && \
+  sed -i "s/CHANGE_ME_GENERATE_SECURE_32_CHAR_RANDOM_STRING/$JWT_KEY/" .env
+
+DB_PASS=$(openssl rand -base64 24) && \
+  sed -i "s/change_me_in_production/$DB_PASS/" .env
+
+# 4. 修改 docker-compose.yml 使用本地镜像
+# 编辑 docker-compose.yml，确保使用镜像名称（不含 Docker Hub 地址）
+# backend:
+#   image: cs_ops_backend:1.0.0    # ✅ 本地镜像
+# frontend:
+#   image: cs_ops_frontend:1.0.0   # ✅ 本地镜像
+
+# 5. 启动服务
+docker-compose up -d
+
+# 6. 执行数据库迁移
+docker-compose --profile migrate up migrate
+
+# 7. 验证部署
+docker-compose ps
+curl http://localhost:80/health
+```
+
+#### 步骤 4: 更新部署（版本升级）
+
+```bash
+# 在开发机器上构建新版本
+docker build -t cs_ops_backend:1.0.1 .
+docker save cs_ops_backend:1.0.1 | gzip > cs_ops_backend-1.0.1.tar.gz
+
+# 传输到服务器
+scp cs_ops_backend-1.0.1.tar.gz user@your-server-ip:/opt/cs_ops/
+
+# 在服务器上导入并重启
+ssh user@your-server-ip
+cd /opt/cs_ops
+gunzip -c cs_ops_backend-1.0.1.tar.gz | docker load
+docker-compose restart backend
+```
+
+---
+
+### 方案 B: 使用 Docker Hub（推荐）
+
+> **适用场景**: 有外网访问的生产环境、需要持续集成  
+> **优势**: 自动化程度高、版本管理方便、支持回滚
+
+#### 步骤 1: 推送镜像到 Docker Hub
+
+```bash
+# 1. 登录 Docker Hub（首次需要）
+docker login
+
+# 2. 构建并标记镜像
+cd backend
+docker build -t your-username/cs_ops_backend:1.0.0 .
+docker tag cs_ops_backend:1.0.0 your-username/cs_ops_backend:1.0.0
+
+cd ../frontend
+docker build -t your-username/cs_ops_frontend:1.0.0 .
+docker tag cs_ops_frontend:1.0.0 your-username/cs_ops_frontend:1.0.0
+
+# 3. 推送镜像
+docker push your-username/cs_ops_backend:1.0.0
+docker push your-username/cs_ops_frontend:1.0.0
+```
+
+#### 步骤 2: 在服务器上拉取并部署
+
+```bash
+# 1. 创建部署目录
+sudo mkdir -p /opt/cs_ops
+cd /opt/cs_ops
+
+# 2. 创建 docker-compose.yml
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: cs_ops_db
+    environment:
+      POSTGRES_DB: cs_ops
+      POSTGRES_USER: cs_ops_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cs_ops_network
+
+  backend:
+    image: your-username/cs_ops_backend:1.0.0
+    container_name: cs_ops_backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cs_ops_user:${POSTGRES_PASSWORD}@db:5432/cs_ops
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    depends_on:
+      - db
+    networks:
+      - cs_ops_network
+
+  frontend:
+    image: your-username/cs_ops_frontend:1.0.0
+    container_name: cs_ops_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - cs_ops_network
+
+volumes:
+  postgres_data:
+
+networks:
+  cs_ops_network:
+EOF
+
+# 3. 生成环境变量
+cat > .env << EOF
+POSTGRES_PASSWORD=$(openssl rand -base64 24)
+JWT_SECRET_KEY=$(openssl rand -hex 32)
+EOF
+
+# 4. 拉取镜像并启动
+docker-compose pull
+docker-compose up -d
+docker-compose --profile migrate up migrate
+
+# 5. 验证部署
+docker-compose ps
+curl http://localhost:80/health
 ```
 
 **2️⃣ 配置环境变量**
@@ -431,6 +644,208 @@ grep -E "JWT_SECRET_KEY|POSTGRES_PASSWORD" .env
 
 - 部署快速参考：`docs/DEPLOYMENT_QUICKSTART.md`
 - 完整检查清单：`docs/DEPLOYMENT_CHECKLIST.md`
+
+---
+
+## 💻 本地开发环境
+
+> **说明**: 本节介绍如何在本地开发环境中运行和调试项目（非 Docker 方式）
+
+### 环境要求
+
+- **Python**: 3.11+
+- **Node.js**: 18+
+- **PostgreSQL**: 15+
+- **Git**: 任意版本
+
+### 快速开始（开发模式）
+
+#### 方式 1: 使用 Docker Compose（推荐开发环境）
+
+**优势**: 数据库和环境隔离，一键启动/停止
+
+```bash
+# 1. 启动数据库（仅数据库，使用 Docker）
+docker-compose up -d db
+
+# 2. 本地启动后端（开发模式，支持热重载）
+cd backend
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env
+# 配置 DATABASE_URL=postgresql+asyncpg://cs_ops_user:cs_ops_password@localhost:5432/cs_ops
+alembic upgrade head
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 3. 本地启动前端（开发模式，支持热重载）
+cd frontend
+npm install
+npm run dev
+# 访问 http://localhost:5173
+```
+
+#### 方式 2: 完全本地部署（无 Docker）
+
+**启动数据库（PostgreSQL 本地安装）**
+
+```bash
+# macOS (使用 Homebrew)
+brew install postgresql@15
+brew services start postgresql@15
+createdb cs_ops
+
+# Ubuntu/Debian
+sudo apt-get install postgresql-15 postgresql-contrib-15
+sudo systemctl start postgresql
+sudo -u postgres createdb cs_ops
+
+# 创建数据库用户
+sudo -u postgres psql
+CREATE USER cs_ops_user WITH PASSWORD 'cs_ops_password';
+GRANT ALL PRIVILEGES ON DATABASE cs_ops TO cs_ops_user;
+\q
+```
+
+**启动后端（开发模式）**
+
+```bash
+cd backend
+
+# 1. 创建虚拟环境
+python3.11 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 2. 安装依赖
+pip install -e ".[dev]"
+pip install -r requirements.txt
+
+# 3. 配置环境变量
+cp .env.example .env
+# 编辑 .env 配置数据库连接
+# DATABASE_URL=postgresql+asyncpg://cs_ops_user:cs_ops_password@localhost:5432/cs_ops
+
+# 4. 运行数据库迁移
+alembic upgrade head
+
+# 5. 启动开发服务器（支持热重载）
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 访问 API 文档：http://localhost:8000/docs
+```
+
+**启动前端（开发模式）**
+
+```bash
+cd frontend
+
+# 1. 安装依赖
+npm install
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 设置 VITE_API_BASE_URL=http://localhost:8000/api/v1
+
+# 3. 启动开发服务器（支持热重载）
+npm run dev
+
+# 访问：http://localhost:5173
+```
+
+### 开发工具配置
+
+#### VS Code 推荐插件
+
+```
+- Python (ms-python.python)
+- Pylance (ms-python.vscode-pylance)
+- Volar (Vue.js) (Vue.volar)
+- ESLint (dbaeumer.vscode-eslint)
+- Docker (ms-azuretools.vscode-docker)
+```
+
+#### 配置 launch.json（调试配置）
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: 后端调试",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app.main:app",
+        "--reload",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://cs_ops_user:cs_ops_password@localhost:5432/cs_ops"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Chrome: 前端调试",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend/src"
+    }
+  ]
+}
+```
+
+### 常用开发命令
+
+```bash
+# 后端
+cd backend
+source .venv/bin/activate
+pytest tests/ -v                    # 运行测试
+pytest tests/ -v --cov=app         # 运行测试并生成覆盖率报告
+alembic revision --autogenerate -m "迁移说明"  # 创建数据库迁移
+alembic upgrade head                # 应用迁移
+
+# 前端
+cd frontend
+npm run dev                         # 启动开发服务器
+npm run build                       # 构建生产版本
+npm run test                        # 运行测试
+npx playwright test                 # 运行 E2E 测试
+```
+
+---
+
+## 🎯 部署 vs 开发环境对比
+
+| 特性           | 开发环境        | Docker 部署（生产） |
+| -------------- | --------------- | ------------------- |
+| **运行方式**   | 本地直接运行    | Docker 容器         |
+| **热重载**     | ✅ 支持         | ❌ 不支持           |
+| **调试**       | ✅ 支持         | ⚠️ 有限支持         |
+| **数据库**     | 本地 PostgreSQL | Docker 容器         |
+| **启动速度**   | 快              | 中等                |
+| **环境一致性** | ⚠️ 依赖本地配置 | ✅ 完全一致         |
+| **适用场景**   | 开发、调试      | 测试、生产          |
+
+---
+
+## 🧪 部署后验证
+
+**健康检查**:
+
+```bash
+# 检查应用状态
+curl http://localhost:8000/health
+
+# 期望响应
+# {"status": "healthy", "timestamp": "...", "version": "0.1.0"}
+```
 
 ---
 
