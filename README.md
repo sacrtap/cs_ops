@@ -141,7 +141,13 @@ cd cs_ops
 # 复制环境配置模板
 cp .env.docker .env
 
-# 编辑配置文件（必须修改 JWT_SECRET_KEY）
+# 自动生成 JWT_SECRET_KEY（32 字符随机密钥）
+JWT_KEY=$(openssl rand -hex 32) && sed -i "s/CHANGE_ME_GENERATE_SECURE_32_CHAR_RANDOM_STRING/$JWT_KEY/" .env
+
+# 自动生成数据库密码（24 字符随机密码）
+DB_PASS=$(openssl rand -base64 24) && sed -i "s/change_me_in_production/$DB_PASS/" .env
+
+# 或者手动编辑配置文件
 vim .env
 ```
 
@@ -239,17 +245,28 @@ docker-compose exec db psql -U cs_ops_user cs_ops
 **必须修改的配置** (编辑 `.env` 文件):
 
 ```bash
-# 1. 生成 JWT 密钥（32 字符以上）
-openssl rand -hex 32
-# 复制到 .env 的 JWT_SECRET_KEY
+# 1. 自动生成 JWT 密钥（32 字符以上）
+JWT_KEY=$(openssl rand -hex 32) && echo "JWT_SECRET_KEY=$JWT_KEY"
 
-# 2. 设置强数据库密码
-openssl rand -base64 24
-# 复制到 .env 的 POSTGRES_PASSWORD
+# 或者直接替换配置文件中的占位符
+JWT_KEY=$(openssl rand -hex 32) && \
+  sed -i "s/CHANGE_ME_GENERATE_SECURE_32_CHAR_RANDOM_STRING/$JWT_KEY/" .env
 
-# 3. 生产环境关闭调试模式（已在 docker-compose.yml 中配置）
-APP_DEBUG=false
+# 2. 自动生成强数据库密码（24 字符）
+DB_PASS=$(openssl rand -base64 24) && echo "POSTGRES_PASSWORD=$DB_PASS"
+
+# 或者直接替换配置文件中的占位符
+DB_PASS=$(openssl rand -base64 24) && \
+  sed -i "s/change_me_in_production/$DB_PASS/" .env
+
+# 3. 一键生成所有安全配置（推荐）
+cat >> .env << EOF
+JWT_SECRET_KEY=$(openssl rand -hex 32)
+POSTGRES_PASSWORD=$(openssl rand -base64 24)
+EOF
 ```
+
+> **💡 提示**: 运行以上命令后，使用 `vim .env` 查看并确认配置已更新
 
 **防火墙配置** (Ubuntu 示例):
 
@@ -368,16 +385,37 @@ docker-compose up -d
 # 数据库配置
 POSTGRES_DB=cs_ops                  # 数据库名
 POSTGRES_USER=cs_ops_user           # 数据库用户
-POSTGRES_PASSWORD=你的强密码        # ⚠️ 必须修改
+POSTGRES_PASSWORD=你的强密码        # ⚠️ 使用 openssl rand -base64 24 生成
 DB_PORT=5432                        # 数据库端口
 
 # 后端配置
-JWT_SECRET_KEY=生成的 32 字符密钥   # ⚠️ 必须修改
+JWT_SECRET_KEY=生成的 32 字符密钥   # ⚠️ 使用 openssl rand -hex 32 生成
 API_PORT=8000                       # 后端 API 端口
 API_WORKERS=4                       # Gunicorn 工作进程数
 
 # 前端配置
 FRONTEND_PORT=80                    # 前端端口
+```
+
+**🔧 一键自动生成所有安全配置**:
+
+```bash
+# 方法 1: 使用 sed 替换占位符
+JWT_KEY=$(openssl rand -hex 32) && \
+  sed -i "s/CHANGE_ME_GENERATE_SECURE_32_CHAR_RANDOM_STRING/$JWT_KEY/" .env
+
+DB_PASS=$(openssl rand -base64 24) && \
+  sed -i "s/change_me_in_production/$DB_PASS/" .env
+
+# 方法 2: 直接追加配置（推荐）
+cat >> .env << EOF
+# 自动生成的安全配置
+JWT_SECRET_KEY=$(openssl rand -hex 32)
+POSTGRES_PASSWORD=$(openssl rand -base64 24)
+EOF
+
+# 验证配置
+grep -E "JWT_SECRET_KEY|POSTGRES_PASSWORD" .env
 ```
 
 ---
