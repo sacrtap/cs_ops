@@ -115,505 +115,284 @@ npm run build
 
 ## 系统部署
 
-### 🚀 一键部署（推荐）
+### 🐳 Docker 一键部署（推荐）
 
-#### 方式 1: 使用一键部署脚本
+> **适用场景**: 部署到本地服务器或生产环境  
+> **前提条件**: 服务器已安装 Docker 和 Docker Compose
 
-**生产环境部署**:
+---
+
+#### 📦 部署步骤
+
+**1️⃣ 克隆项目到服务器**
 
 ```bash
-# 1. 准备环境配置文件
-cd backend
-cp .env.example .env.production
-# 编辑 .env.production，配置生产环境变量
+# SSH 登录到服务器
+ssh user@your-server-ip
 
-# 2. 执行一键部署脚本
-chmod +x scripts/deploy-prod.sh
-./scripts/deploy-prod.sh
+# 克隆项目（或上传项目文件）
+git clone https://github.com/sacrtap/cs_ops.git
+cd cs_ops
 ```
 
-**部署脚本功能**:
-
-- ✅ 自动环境检查（Python, Node, PostgreSQL, Git）
-- ✅ 依赖安装（后端 + 前端）
-- ✅ 数据库迁移与备份
-- ✅ 前端生产构建
-- ✅ 测试验证
-- ✅ 应用启动（Gunicorn）
-- ✅ 健康检查
-- ✅ 失败自动回滚
-
-**查看部署日志**:
+**2️⃣ 配置环境变量**
 
 ```bash
-# 实时查看日志
-tail -f /var/log/cs_ops/error.log
+# 复制环境配置模板
+cp .env.docker .env
 
+# 编辑配置文件（必须修改 JWT_SECRET_KEY）
+vim .env
+```
+
+> **⚠️ 重要**: 至少修改以下配置：
+>
+> ```bash
+> JWT_SECRET_KEY=生成的 32 字符随机密钥
+> POSTGRES_PASSWORD=强密码
+> ```
+
+**3️⃣ 一键启动**
+
+```bash
+# 启动所有服务（数据库 + 后端 + 前端）
+docker-compose up -d
+
+# 执行数据库迁移
+docker-compose --profile migrate up migrate
+```
+
+**4️⃣ 验证部署**
+
+```bash
 # 查看服务状态
-sudo systemctl status cs_ops_backend
-```
-
-#### 方式 2: 使用 Docker Compose 部署
-
-**快速启动**:
-
-```bash
-# 1. 配置环境变量
-cp .env.docker .env
-# 编辑 .env 文件，修改 JWT_SECRET_KEY 等配置
-
-# 2. 一键启动所有服务
-docker-compose up -d
-
-# 3. 执行数据库迁移
-docker-compose --profile migrate up migrate
-
-# 4. 查看服务状态
 docker-compose ps
 
-# 5. 查看日志
-docker-compose logs -f backend
-```
-
-**停止服务**:
-
-```bash
-docker-compose down
-# 保留数据卷
-docker-compose down -v  # 谨慎使用，会删除数据库数据
-```
-
-**服务端口**:
-
-- 前端：http://localhost:80
-- 后端 API：http://localhost:8000
-- 数据库：localhost:5432
-
----
-
-### 📋 传统部署方式
-
-#### 1. 后端部署
-
-**使用 Docker**:
-
-```bash
-# 构建镜像
-cd backend
-docker build -t cs_ops_backend:latest .
-
-# 运行容器
-docker run -d \
-  --name cs_ops_backend \
-  -p 8000:8000 \
-  -e DATABASE_URL=postgresql+asyncpg://user:password@host:port/dbname \
-  -e JWT_SECRET_KEY=your-secret-key \
-  cs_ops_backend:latest
-```
-
-**使用 systemd** (Linux):
-
-```bash
-# 创建服务文件 /etc/systemd/system/cs_ops_backend.service
-[Unit]
-Description=CS Ops Backend API
-After=network.target postgresql.service
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/path/to/cs_ops/backend
-Environment="PATH=/path/to/cs_ops/backend/.venv/bin"
-ExecStart=/path/to/cs_ops/backend/.venv/bin/python -m app.main
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-
-# 启用并启动服务
-sudo systemctl enable cs_ops_backend
-sudo systemctl start cs_ops_backend
-sudo systemctl status cs_ops_backend
-```
-
-**配置环境变量**:
-
-```bash
-# 生产环境变量示例
-export DATABASE_URL="postgresql+asyncpg://user:password@host:port/dbname"
-export JWT_SECRET_KEY="your-super-secret-production-key-min-32-chars"
-export APP_DEBUG=false
-export SERVER_WORKERS=4
-```
-
-#### 2. 前端部署
-
-**构建生产版本**:
-
-```bash
-cd frontend
-
-# 安装依赖
-npm install
-
-# 配置生产 API 地址
-echo "VITE_API_BASE_URL=https://api.your-domain.com/api/v1" > .env.production
-
-# 构建
-npm run build
-
-# 输出目录：dist/
-```
-
-**使用 Nginx 部署**:
-
-```nginx
-# Nginx 配置示例
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    # 前端静态文件
-    location / {
-        root /path/to/cs_ops/frontend/dist;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # 后端 API 反向代理
-    location /api/ {
-        proxy_pass http://localhost:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-**使用 Docker 部署**:
-
-```bash
-# 构建镜像
-cd frontend
-docker build -t cs_ops_frontend:latest .
-
-# 运行容器
-docker run -d \
-  --name cs_ops_frontend \
-  -p 80:80 \
-  cs_ops_frontend:latest
-```
-
----
-
-#### 3. 数据库部署
-
-**PostgreSQL 配置**:
-
-```bash
-# 安装 PostgreSQL 15+
-sudo apt-get install postgresql-15 postgresql-contrib-15
-
-# 创建数据库和用户
-sudo -u postgres psql
-CREATE DATABASE cs_ops;
-CREATE USER cs_ops_user WITH PASSWORD 'your-password';
-GRANT ALL PRIVILEGES ON DATABASE cs_ops TO cs_ops_user;
-\q
-
-# 运行数据库迁移
-cd backend
-source .venv/bin/activate
-alembic upgrade head
-```
-
-**数据库备份**:
-
-```bash
-# 备份数据库
-pg_dump -h localhost -U cs_ops_user cs_ops > backup.sql
-
-# 恢复数据库
-psql -h localhost -U cs_ops_user cs_ops < backup.sql
-```
-
----
-
-#### 4. 使用 Docker Compose 一键部署
-
-**快速启动**:
-
-```bash
-# 1. 配置环境变量
-cp .env.docker .env
-# 编辑 .env 文件，修改 JWT_SECRET_KEY 等配置
-
-# 2. 一键启动所有服务
-docker-compose up -d
-
-# 3. 执行数据库迁移
-docker-compose --profile migrate up migrate
-
-# 4. 查看服务状态
-docker-compose ps
+# 查看日志
 docker-compose logs -f
 
-# 5. 停止服务
+# 测试访问
+curl http://localhost:80/health
+curl http://localhost:8000/health
+```
+
+---
+
+#### 🎯 访问服务
+
+部署完成后，可通过以下地址访问：
+
+| 服务     | 地址                       | 说明               |
+| -------- | -------------------------- | ------------------ |
+| 前端     | http://your-server-ip:80   | Web 界面           |
+| 后端 API | http://your-server-ip:8000 | API 接口（含文档） |
+| 数据库   | localhost:5432             | PostgreSQL         |
+
+**API 文档**: http://your-server-ip:8000/docs
+
+---
+
+#### 🔧 常用命令
+
+```bash
+# 查看所有服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f              # 所有服务
+docker-compose logs -f backend      # 只看后端
+docker-compose logs -f frontend     # 只看前端
+
+# 重启服务
+docker-compose restart backend
+docker-compose restart frontend
+
+# 停止所有服务
 docker-compose down
+
+# 重新部署（更新代码后）
+git pull
+docker-compose build
+docker-compose up -d
+docker-compose --profile migrate up migrate
 ```
 
-**docker-compose.yml 包含的服务**:
+---
 
-- `db` - PostgreSQL 15 数据库
-- `backend` - 后端 API 服务（Gunicorn + Uvicorn）
-- `frontend` - 前端 Nginx 服务
-- `migrate` - 数据库迁移任务（一次性）
-
-**使用 Nginx 部署**:
-
-```nginx
-# Nginx 配置示例
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    # 前端静态文件
-    location / {
-        root /path/to/cs_ops/frontend/dist;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # 后端 API 反向代理
-    location /api/ {
-        proxy_pass http://localhost:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-**使用 Docker 部署**:
-
-```bash
-# 构建镜像
-docker build -t cs_ops_frontend:latest .
-
-# 运行容器
-docker run -d \
-  --name cs_ops_frontend \
-  -p 80:80 \
-  cs_ops_frontend:latest
-```
-
-#### 3. 数据库部署
-
-**PostgreSQL 配置**:
-
-```bash
-# 安装 PostgreSQL 18
-sudo apt-get install postgresql-18 postgresql-contrib-18
-
-# 创建数据库和用户
-sudo -u postgres psql
-CREATE DATABASE cs_ops;
-CREATE USER cs_ops_user WITH PASSWORD 'your-password';
-GRANT ALL PRIVILEGES ON DATABASE cs_ops TO cs_ops_user;
-\q
-
-# 运行数据库迁移
-cd backend
-source .venv/bin/activate
-alembic upgrade head
-```
-
-**数据库备份**:
+#### 🗄️ 数据库管理
 
 ```bash
 # 备份数据库
-pg_dump -h localhost -U cs_ops_user cs_ops > backup.sql
+docker-compose exec db pg_dump -U cs_ops_user cs_ops > backup.sql
 
 # 恢复数据库
-psql -h localhost -U cs_ops_user cs_ops < backup.sql
+docker-compose exec -T db psql -U cs_ops_user cs_ops < backup.sql
+
+# 进入数据库命令行
+docker-compose exec db psql -U cs_ops_user cs_ops
 ```
 
-#### 4. 使用 Docker Compose 一键部署
+---
 
-```yaml
-# docker-compose.yml
-version: "3.8"
+#### 🔐 安全配置
 
-services:
-  db:
-    image: postgres:18
-    environment:
-      POSTGRES_DB: cs_ops
-      POSTGRES_USER: cs_ops_user
-      POSTGRES_PASSWORD: your-password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  backend:
-    build: ./backend
-    environment:
-      DATABASE_URL: postgresql+asyncpg://cs_ops_user:your-password@db:5432/cs_ops
-      JWT_SECRET_KEY: your-secret-key
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-volumes:
-  postgres_data:
-```
-
-**启动服务**:
+**必须修改的配置** (编辑 `.env` 文件):
 
 ```bash
+# 1. 生成 JWT 密钥（32 字符以上）
+openssl rand -hex 32
+# 复制到 .env 的 JWT_SECRET_KEY
+
+# 2. 设置强数据库密码
+openssl rand -base64 24
+# 复制到 .env 的 POSTGRES_PASSWORD
+
+# 3. 生产环境关闭调试模式（已在 docker-compose.yml 中配置）
+APP_DEBUG=false
+```
+
+**防火墙配置** (Ubuntu 示例):
+
+```bash
+# 只开放必要端口
+sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS（如果配置 SSL）
+sudo ufw enable
+```
+
+**HTTPS 配置**（推荐）:
+
+使用 Nginx 反向代理 + Let's Encrypt SSL 证书：
+
+```bash
+# 安装 certbot
+sudo apt install certbot python3-certbot-nginx
+
+# 获取证书
+sudo certbot --nginx -d your-domain.com
+```
+
+---
+
+#### 🐛 故障排除
+
+**1. 服务启动失败**
+
+```bash
+# 查看详细日志
+docker-compose logs backend
+
+# 检查端口占用
+sudo lsof -i :80
+sudo lsof -i :8000
+```
+
+**2. 数据库连接失败**
+
+```bash
+# 检查数据库是否运行
+docker-compose ps db
+
+# 重启数据库
+docker-compose restart db
+
+# 等待数据库就绪后重新迁移
+docker-compose --profile migrate up migrate
+```
+
+**3. 内存不足**
+
+```bash
+# 查看资源使用
+docker stats
+
+# 减少后端工作进程数（编辑 .env）
+API_WORKERS=2
+```
+
+**4. 重置部署**
+
+```bash
+# 停止并删除所有容器和数据卷（⚠️ 会删除所有数据）
+docker-compose down -v
+
+# 重新启动
+docker-compose up -d
+docker-compose --profile migrate up migrate
+```
+
+---
+
+#### 📊 监控与维护
+
+**查看资源使用**:
+
+```bash
+# 实时查看容器资源占用
+docker stats
+
+# 查看容器状态
+docker-compose ps
+```
+
+**日志管理**:
+
+```bash
+# 查看最近 100 行日志
+docker-compose logs --tail=100
+
+# 查看特定时间后的日志
+docker-compose logs --since="2026-03-02"
+```
+
+**自动重启**:
+
+所有服务已配置 `restart: always`，服务器重启后自动启动：
+
+```bash
+# 重启服务器后，检查服务是否自动启动
+docker-compose ps
+
+# 如果没有启动
 docker-compose up -d
 ```
 
-#### 5. 环境变量配置
+---
 
-**后端环境变量** (`backend/.env.production`):
+### 📝 环境配置说明
+
+**`.env` 配置文件**:
 
 ```bash
-# 应用配置
-APP_NAME=cs_ops
-APP_VERSION=0.1.0
-APP_DEBUG=false  # 生产环境必须为 false
-
 # 数据库配置
-DATABASE_URL=postgresql+asyncpg://user:password@host:port/dbname
+POSTGRES_DB=cs_ops                  # 数据库名
+POSTGRES_USER=cs_ops_user           # 数据库用户
+POSTGRES_PASSWORD=你的强密码        # ⚠️ 必须修改
+DB_PORT=5432                        # 数据库端口
 
-# JWT 配置
-JWT_SECRET_KEY=更换为新的 32+ 字符随机密钥（使用 openssl rand -hex 32 生成）
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
-JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+# 后端配置
+JWT_SECRET_KEY=生成的 32 字符密钥   # ⚠️ 必须修改
+API_PORT=8000                       # 后端 API 端口
+API_WORKERS=4                       # Gunicorn 工作进程数
 
-# 安全配置
-BCRYPT_ROUNDS=12
-MAX_LOGIN_ATTEMPTS=5
-LOCKOUT_DURATION_MINUTES=15
-
-# CORS 配置
-CORS_ORIGINS=https://your-domain.com,https://www.your-domain.com
-
-# 服务器配置
-SERVER_HOST=0.0.0.0
-SERVER_PORT=8000
-SERVER_WORKERS=4
-```
-
-**前端环境变量** (`frontend/.env.production`):
-
-```bash
-# API 基础 URL
-VITE_API_BASE_URL=https://api.your-domain.com/api/v1
-
-# 应用配置
-VITE_APP_NAME=cs_ops
-VITE_APP_VERSION=0.1.0
+# 前端配置
+FRONTEND_PORT=80                    # 前端端口
 ```
 
 ---
 
-### 🔐 安全检查清单
+### 🎓 下一步
 
-部署前必须完成的安全配置:
+1. ✅ **创建管理员账户** - 通过 API 或管理界面
+2. ✅ **配置 SSL 证书** - 使用 Let's Encrypt
+3. ✅ **设置自动备份** - 配置数据库定时备份
+4. ✅ **配置监控系统** - 日志收集、告警通知
 
-- [ ] **JWT 密钥更换**: 使用至少 32 字符的强随机密钥
-- [ ] **关闭 DEBUG 模式**: 生产环境必须设置 `APP_DEBUG=false`
-- [ ] **数据库密码**: 使用强密码，不要使用默认密码
-- [ ] **HTTPS 配置**: 配置 SSL 证书，强制 HTTPS
-- [ ] **CORS 配置**: 限制允许的来源域名
-- [ ] **防火墙配置**: 只开放必要端口（80, 443）
-- [ ] **日志配置**: 配置日志轮转，避免磁盘占满
-- [ ] **备份策略**: 配置数据库定时备份
+**详细文档**:
 
-**生成强 JWT 密钥**:
-
-```bash
-# 方法 1: 使用 openssl
-openssl rand -hex 32
-
-# 方法 2: 使用 python
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
----
-
-### 🧪 部署后验证
-
-**健康检查**:
-
-```bash
-# 检查应用状态
-curl http://localhost:8000/health
-
-# 期望响应
-# {"status": "healthy", "timestamp": "...", "version": "0.1.0"}
-```
-
-**功能验证**:
-
-```bash
-# 1. 用户注册
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test","password":"test123","email":"test@example.com"}'
-
-# 2. 用户登录
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test","password":"test123"}'
-
-# 3. 受保护资源访问
-curl http://localhost:8000/api/v1/users/me \
-  -H "Authorization: Bearer eyJ..."
-```
-
-**查看日志**:
-
-```bash
-# 后端日志
-tail -f /var/log/cs_ops/error.log
-tail -f /var/log/cs_ops/access.log
-
-# Docker 日志
-docker-compose logs -f backend
-docker-compose logs -f frontend
-```
-
-**前端环境变量** (`frontend/.env.production`):
-
-```bash
-# API 基础 URL
-VITE_API_BASE_URL=https://api.your-domain.com/api/v1
-
-# 应用配置
-VITE_APP_NAME=cs_ops
-VITE_APP_VERSION=0.1.0
-```
+- 部署快速参考：`docs/DEPLOYMENT_QUICKSTART.md`
+- 完整检查清单：`docs/DEPLOYMENT_CHECKLIST.md`
 
 ---
 
