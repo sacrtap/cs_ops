@@ -10,11 +10,12 @@ Permission Audit Service - 权限审计服务
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple, Any
-from sqlalchemy import select, and_, func, desc, asc
+from sqlalchemy import select, and_, func, desc, asc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
-from sqlalchemy import select, func, and_, or_
 from ..models.permission_audit_log import PermissionAuditLog
+from ..services.permission_service import check_permission
+from ..models.user import UserRole
 
 
 class PermissionAuditService:
@@ -184,8 +185,10 @@ class PermissionAuditService:
         Returns:
             tuple: (是否异常，异常类型)
         """
-        # 规则 1: 检查权限（需要权限检查服务）
-        # 这里简化处理，实际应该调用权限检查服务
+        # 规则 1: 检查权限（集成权限检查服务）✅ HIGH-2 FIXED
+        has_permission = await check_permission(role, resource, action, session)
+        if not has_permission:
+            return True, "unauthorized_access"
         
         # 规则 2: 检查频繁访问（过去 1 分钟内超过 100 次）
         one_minute_ago = datetime.now() - timedelta(minutes=1)
@@ -201,13 +204,41 @@ class PermissionAuditService:
         if recent_count > 100:
             return True, "frequent_access"
         
-        # 规则 3: 检查越权访问（简化版）
-        high_privilege_resources = ["role", "permission", "audit"]
-        low_level_roles = ["sales"]
+        # 规则 3: 异地访问检测（简化版 - 基于角色 IP 限制）
+        # 管理员和经理允许所有 IP，销售和专员限制为办公网络
+        restricted_roles = [UserRole.SALES.value, UserRole.SPECIALIST.value]
+        office_ip_prefixes = ["192.168.", "10.", "172.16."]  # 办公网络 IP 段
         
-        if resource in high_privilege_resources and role in low_level_roles:
-            if action in ["delete", "update"]:
-                return True, "unauthorized_access"
+        if role in restricted_roles:
+            # 检查是否为常用 IP（简化实现：检查 IP 前缀）
+            is_office_ip = any(ip_address.startswith(prefix) for prefix in office_ip_prefixes)
+            if not is_office_ip:
+                # 记录异地访问但允许（因为可能是远程办公）
+                # 实际应该基于用户历史 IP 白名单
+                return True, "location_anomaly"
+        
+        # 规则 4: 越权访问检测（基于角色层级）
+        role_hierarchy = {
+            UserRole.ADMIN.value: 4,
+            UserRole.MANAGER.value: 3,
+            UserRole.SPECIALIST.value: 2,
+            UserRole.SALES.value: 1
+        }
+        
+        # 高权限资源定义
+        high_privilege_resources = {
+            "role": 4,  # 只有 admin 可以管理
+            "permission": 4,  # 只有 admin 可以管理
+            "audit": 3,  # admin 和 manager 可以访问
+            "user": 3,  # admin 和 manager 可以管理
+        }
+        
+        user_level = role_hierarchy.get(role, 0)
+        required_level = high_privilege_resources.get(resource, 1)
+        
+        # 低级别角色尝试访问高级别功能
+        if user_level < required_level and action in ["delete", "update"]:
+            return True, "privilege_escalation"
         
         # 未检测到异常
         return False, None

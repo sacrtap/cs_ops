@@ -38,11 +38,22 @@
           </a-select>
         </a-form-item>
 
+        <a-form-item label="自动刷新">
+          <a-switch
+            v-model="autoRefresh"
+            checked-children="开"
+            un-checked-children="关"
+            @change="toggleAutoRefresh"
+          />
+        </a-form-item>
+
         <a-form-item>
           <a-space>
             <a-button type="primary" @click="handleQuery">查询</a-button>
             <a-button @click="handleReset">重置</a-button>
-            <a-button @click="handleExport">导出</a-button>
+            <a-button @click="handleExport" :loading="exporting">
+              {{ exporting ? '导出中...' : '导出' }}
+            </a-button>
           </a-space>
         </a-form-item>
       </a-form>
@@ -70,6 +81,7 @@
         :columns="columns"
         :loading="loading"
         :pagination="pagination"
+        :scroll="{ x: 1400 }"
         @page-change="handlePageChange"
         @sorter-change="handleSortChange"
         size="small"
@@ -106,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { useUserStore } from '@/stores/user'
@@ -117,6 +129,9 @@ const userStore = useUserStore()
 
 // 状态
 const loading = ref(false)
+const exporting = ref(false) // MEDIUM-3 FIXED: 添加导出状态
+const autoRefresh = ref(false) // LOW-2 FIXED: 添加自动刷新开关
+const refreshTimer = ref<any>(null) // 定时器引用
 const userList = ref<any[]>([])
 const auditRecords = ref<any[]>([])
 const statistics = ref({
@@ -210,6 +225,17 @@ function formatTimestamp(timestamp: string): string {
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
 }
 
+// LOW-1 FIXED: 提取日期范围处理为工具函数，避免重复代码
+function formatDateRange(dateRange: any[]): { start_date?: string; end_date?: string } {
+  if (!dateRange || dateRange.length !== 2) {
+    return {}
+  }
+  return {
+    start_date: dayjs(dateRange[0]).format('YYYY-MM-DD'),
+    end_date: dayjs(dateRange[1]).format('YYYY-MM-DD'),
+  }
+}
+
 // 查询审计记录
 async function queryAuditRecords() {
   loading.value = true
@@ -225,10 +251,9 @@ async function queryAuditRecords() {
       params.user_id = filters.user_id
     }
 
-    if (filters.dateRange && filters.dateRange.length === 2) {
-      params.start_date = dayjs(filters.dateRange[0]).format('YYYY-MM-DD')
-      params.end_date = dayjs(filters.dateRange[1]).format('YYYY-MM-DD')
-    }
+    // LOW-1 FIXED: 使用工具函数处理日期范围
+    const dateRangeParams = formatDateRange(filters.dateRange)
+    Object.assign(params, dateRangeParams)
 
     if (filters.anomaly_type) {
       params.anomaly_type = filters.anomaly_type
@@ -247,7 +272,23 @@ async function queryAuditRecords() {
       Message.error(response.error || '查询失败')
     }
   } catch (err: any) {
-    Message.error(err.message || '查询失败')
+    // MEDIUM-2 FIXED: 改进错误处理，根据不同状态码显示友好提示
+    const status = err.response?.status
+    if (status === 401) {
+      Message.error('会话已过期，请重新登录')
+      // 可以在这里跳转到登录页
+      // router.push('/login')
+    } else if (status === 403) {
+      Message.error('没有权限访问该资源')
+    } else if (status === 404) {
+      Message.error('请求的资源不存在')
+    } else if (status === 500) {
+      Message.error('服务器错误，请稍后重试')
+    } else if (status === 503) {
+      Message.error('服务暂时不可用，请稍后重试')
+    } else {
+      Message.error(err.message || '查询失败，请稍后重试')
+    }
   } finally {
     loading.value = false
   }
@@ -256,20 +297,19 @@ async function queryAuditRecords() {
 // 查询统计信息
 async function queryStatistics() {
   try {
-    const params: any = {}
-
-    if (filters.dateRange && filters.dateRange.length === 2) {
-      params.start_date = dayjs(filters.dateRange[0]).format('YYYY-MM-DD')
-      params.end_date = dayjs(filters.dateRange[1]).format('YYYY-MM-DD')
-    }
+    // LOW-1 FIXED: 使用工具函数处理日期范围
+    const params = formatDateRange(filters.dateRange)
 
     const response = await getAuditStatistics(params)
 
     if (response.success) {
       statistics.value = response.data
     }
-  } catch (err) {
+  } catch (err: any) {
+    // MEDIUM-2 FIXED: 统计查询错误处理（静默失败，不影响主功能）
     console.error('Failed to query statistics:', err)
+    // 可以选择显示非侵入式提示
+    // Message.warning('统计信息获取失败，已使用缓存数据')
   }
 }
 
@@ -280,8 +320,10 @@ async function loadUserList() {
     if (response.success) {
       userList.value = response.data || []
     }
-  } catch (err) {
+  } catch (err: any) {
+    // MEDIUM-2 FIXED: 用户列表加载错误处理
     console.error('Failed to load user list:', err)
+    Message.warning('用户列表加载失败，请刷新页面重试')
   }
 }
 
@@ -302,6 +344,13 @@ function handleReset() {
 
 // 处理导出
 async function handleExport() {
+  // MEDIUM-3 FIXED: 添加导出进度提示
+  exporting.value = true
+  const loadingMsg = Message.loading({
+    content: '正在导出审计记录，请稍候...',
+    duration: 0, // 不自动消失
+  })
+
   try {
     const params: any = { format: 'csv' }
 
@@ -309,10 +358,9 @@ async function handleExport() {
       params.user_id = filters.user_id
     }
 
-    if (filters.dateRange && filters.dateRange.length === 2) {
-      params.start_date = dayjs(filters.dateRange[0]).format('YYYY-MM-DD')
-      params.end_date = dayjs(filters.dateRange[1]).format('YYYY-MM-DD')
-    }
+    // LOW-1 FIXED: 使用工具函数处理日期范围
+    const dateRangeParams = formatDateRange(filters.dateRange)
+    Object.assign(params, dateRangeParams)
 
     const response = await exportAuditLogs(params)
 
@@ -325,9 +373,23 @@ async function handleExport() {
     link.click()
     window.URL.revokeObjectURL(url)
 
+    loadingMsg.close()
     Message.success('导出成功')
   } catch (err: any) {
-    Message.error(err.message || '导出失败')
+    loadingMsg.close()
+    // MEDIUM-2 FIXED: 改进导出错误处理
+    const status = err.response?.status
+    if (status === 401) {
+      Message.error('会话已过期，请重新登录')
+    } else if (status === 403) {
+      Message.error('没有导出权限')
+    } else if (status === 500) {
+      Message.error('服务器错误，导出失败')
+    } else {
+      Message.error(err.message || '导出失败，请稍后重试')
+    }
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -346,10 +408,38 @@ function handleSortChange(sorter: any) {
   queryAuditRecords()
 }
 
+// LOW-2 FIXED: 自动刷新功能
+function toggleAutoRefresh(value: boolean) {
+  if (value) {
+    // 开启自动刷新（每 5 分钟）
+    refreshTimer.value = setInterval(
+      () => {
+        queryAuditRecords()
+        Message.success('数据已自动刷新')
+      },
+      5 * 60 * 1000
+    )
+  } else {
+    // 关闭自动刷新
+    if (refreshTimer.value) {
+      clearInterval(refreshTimer.value)
+      refreshTimer.value = null
+    }
+  }
+}
+
 // 生命周期
 onMounted(() => {
   loadUserList()
   queryAuditRecords()
+})
+
+// LOW-2 FIXED: 组件卸载时清理定时器
+onUnmounted(() => {
+  if (refreshTimer.value) {
+    clearInterval(refreshTimer.value)
+    refreshTimer.value = null
+  }
 })
 </script>
 
