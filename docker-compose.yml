@@ -1,0 +1,96 @@
+version: "3.8"
+
+services:
+  # PostgreSQL 数据库
+  db:
+    image: postgres:15-alpine
+    container_name: cs_ops_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cs_ops}
+      POSTGRES_USER: ${POSTGRES_USER:-cs_ops_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cs_ops_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cs_ops_network
+    restart: always
+
+  # 后端 API 服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cs_ops_backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cs_ops_user}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-cs_ops}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      APP_DEBUG: false
+      API_WORKERS: ${API_WORKERS:-4}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    networks:
+      - cs_ops_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cs_ops_frontend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - cs_ops_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # 数据库迁移任务（一次性）
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cs_ops_migrate
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cs_ops_user}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-cs_ops}
+    command: alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cs_ops_network
+    profiles:
+      - migrate
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  cs_ops_network:
+    driver: bridge

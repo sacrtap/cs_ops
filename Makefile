@@ -272,3 +272,52 @@ ci-test-frontend: ## CI 环境运行前端测试
 	@echo "[CI] 运行前端测试..."
 	$(NPM) run test
 	$(PLAYWRIGHT) test --reporter=list,junit
+
+# ===========================================
+# 部署
+# ===========================================
+
+.PHONY: deploy deploy-dev deploy-prod deploy-docker
+deploy: deploy-dev ## 部署到开发环境
+
+deploy-dev: ## 部署到开发环境
+	@echo "部署到开发环境..."
+	./scripts/deploy.sh development
+
+deploy-prod: ## 部署到生产环境
+	@echo "部署到生产环境..."
+	@echo "警告：这将部署到生产环境！"
+	./scripts/deploy-prod.sh
+
+deploy-docker: ## 使用 Docker Compose 部署
+	@echo "使用 Docker Compose 部署..."
+	docker-compose up -d
+	docker-compose --profile migrate up migrate
+
+.PHONY: docker-build docker-up docker-down docker-logs
+docker-build: ## 构建 Docker 镜像
+	@echo "构建 Docker 镜像..."
+	docker-compose build
+
+docker-up: ## 启动 Docker 服务
+	@echo "启动 Docker 服务..."
+	docker-compose up -d
+
+docker-down: ## 停止 Docker 服务
+	@echo "停止 Docker 服务..."
+	docker-compose down
+
+docker-logs: ## 查看 Docker 日志
+	@echo "查看 Docker 日志..."
+	docker-compose logs -f
+
+.PHONY: backup-db
+backup-db: ## 备份数据库
+	@echo "备份数据库..."
+	@if command -v pg_dump &> /dev/null; then \
+		mkdir -p backups; \
+		pg_dump $(DATABASE_URL) > backups/backup_$$(date +%Y%m%d_%H%M%S).sql; \
+		echo "备份完成"; \
+	else \
+		echo "pg_dump 未安装"; \
+	fi
